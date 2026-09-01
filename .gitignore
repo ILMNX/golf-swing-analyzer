@@ -1,0 +1,41 @@
+# Go binaries and build artifacts
+backend/golf-app
+backend/main
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Python virtual environment
+ml-engine/venv/
+venv/
+.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+
+# YOLO model weights (downloaded at runtime)
+*.pt
+
+# Temporary video files
+temp_*
+*.mp4
+*.avi
+*.mov
+*.mkv
+
+# IDE and OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
