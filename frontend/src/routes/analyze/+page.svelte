@@ -118,7 +118,21 @@
 	}
 </script>
 
-<section class="container-page py-8 sm:py-10">
+<section class="relative overflow-hidden border-b border-border">
+	<div class="pointer-events-none absolute inset-0" aria-hidden="true">
+		<img
+			src="/analyze/driving-range-bay.jpeg"
+			alt=""
+			class="absolute inset-0 h-full w-full object-cover object-[55%_center] sm:object-[60%_center]"
+		/>
+		<div class="absolute inset-0 bg-obsidian/45"></div>
+		<div
+			class="absolute inset-0 bg-gradient-to-r from-obsidian from-0% via-obsidian/80 via-45% to-obsidian/25 to-100%"
+		></div>
+		<div class="absolute inset-0 bg-gradient-to-b from-obsidian/50 via-transparent to-obsidian/55"></div>
+	</div>
+
+	<div class="container-page relative z-10 py-8 sm:py-10">
 	<div class="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
 		<div class="min-w-0">
 			<p class="label">Sesi Baru</p>
@@ -235,6 +249,7 @@
 			</div>
 		</div>
 	</form>
+	</div>
 </section>
 
 {#if loading}
