@@ -16,6 +16,12 @@ MIN_WIDTH = 320
 MIN_HEIGHT = 240
 MIN_FPS = 15.0
 
+# Auto-trim swing segment (Tier 1)
+TRIM_SCAN_STEP = 4                    # scout every Nth frame
+TRIM_PADDING_BEFORE_ADDRESS_SEC = 0.5 # keep half-second before address
+TRIM_PADDING_AFTER_IMPACT_SEC = 1.0   # keep 1s follow-through after impact
+TRIM_MIN_FRAMES = 45                  # minimum trimmed segment length
+
 # Quality thresholds
 MIN_SHARPNESS = 50.0          # Laplacian variance
 MIN_POSE_CONFIDENCE = 0.35    # per-keypoint confidence

@@ -69,17 +69,24 @@ class GolfBiomechanicsAnalyzer:
         self.poses = poses
         self.n_frames = len(poses)
         self.keypoints = self._build_smoothed_keypoints(poses)
-        self.handedness = handedness or self._infer_handedness()
+        self._handedness_explicit = handedness is not None
+        self.handedness = handedness or "right"
         self._lead = RIGHT_HANDED_LEAD if self.handedness == "right" else LEFT_HANDED_LEAD
         self._trail_ankle = (
             RIGHT_HANDED_TRAIL_ANKLE if self.handedness == "right" else LEFT_HANDED_TRAIL_ANKLE
         )
 
-    def analyze(self) -> BiomechanicsResult:
+    def analyze(self, phase_hints: SwingPhases | None = None) -> BiomechanicsResult:
         if self.n_frames < 5:
             return BiomechanicsResult(detection_quality=self._detection_quality())
 
-        phases = self._detect_swing_phases()
+        if phase_hints is not None:
+            phases = self._normalize_phases(phase_hints)
+        else:
+            phases = self._detect_swing_phases()
+
+        if not self._handedness_explicit:
+            self._apply_handedness(self._infer_handedness(phases.address))
         address_width = self._shoulder_width(phases.address)
         if address_width < 1.0:
             address_width = self._median_shoulder_width() or 1.0
@@ -220,16 +227,37 @@ class GolfBiomechanicsAnalyzer:
         widths = [w for w in widths if w > 0]
         return float(np.median(widths)) if widths else 0.0
 
-    def _infer_handedness(self) -> str:
+    def _apply_handedness(self, handedness: str) -> None:
+        self.handedness = handedness
+        self._lead = RIGHT_HANDED_LEAD if handedness == "right" else LEFT_HANDED_LEAD
+        self._trail_ankle = (
+            RIGHT_HANDED_TRAIL_ANKLE if handedness == "right" else LEFT_HANDED_TRAIL_ANKLE
+        )
+
+    def _infer_handedness(self, frame: int = 0) -> str:
         """
         Face-on heuristic for right-handed golfer:
         lead foot (left) is usually farther to the image-right than trail foot (right).
         """
-        la = self._point(0, KeypointIndex.LEFT_ANKLE)
-        ra = self._point(0, KeypointIndex.RIGHT_ANKLE)
+        la = self._point(frame, KeypointIndex.LEFT_ANKLE)
+        ra = self._point(frame, KeypointIndex.RIGHT_ANKLE)
         if la is None or ra is None:
             return "right"
         return "right" if float(la[0]) > float(ra[0]) else "left"
+
+    def _normalize_phases(self, phases: SwingPhases) -> SwingPhases:
+        """Clamp scout/trim phase hints to the current pose sequence."""
+        last = max(0, self.n_frames - 1)
+        address = int(np.clip(phases.address, 0, last))
+        top = int(np.clip(phases.top, address + 1, last))
+        impact = int(np.clip(phases.impact, top + 1, last))
+        return SwingPhases(
+            address=address,
+            top=top,
+            impact=impact,
+            backswing_frames=max(1, top - address),
+            downswing_frames=max(1, impact - top),
+        )
 
     def _detection_quality(self) -> float:
         core = [
@@ -330,30 +358,14 @@ class GolfBiomechanicsAnalyzer:
         self, phases: SwingPhases, address_shoulder_width: float
     ) -> tuple[float, float, float]:
         address_hip = self._hip_width(phases.address)
-        address_shoulder_angle = self._shoulder_line_angle_deg(phases.address)
-        address_hip_angle = self._hip_line_angle_deg(phases.address)
 
         shoulder_rots: list[float] = []
         hip_rots: list[float] = []
         x_factors: list[float] = []
 
         for i in range(phases.address, phases.top + 1):
-            width_shoulder = self._rotation_from_width(
-                self._shoulder_width(i), address_shoulder_width
-            )
-            angle_shoulder = abs(
-                self._shoulder_line_angle_deg(i) - address_shoulder_angle
-            )
-            # Width ratio works face-on; line angle better for down-the-line / partial occlusion
-            s_rot = max(width_shoulder, angle_shoulder)
-
-            width_hip = (
-                self._rotation_from_width(self._hip_width(i), address_hip)
-                if address_hip > 0
-                else 0.0
-            )
-            angle_hip = abs(self._hip_line_angle_deg(i) - address_hip_angle)
-            h_rot = max(width_hip, angle_hip)
+            s_rot = self._shoulder_rotation_at(i, phases.address, address_shoulder_width)
+            h_rot = self._hip_rotation_at(i, phases.address, address_hip)
 
             shoulder_rots.append(s_rot)
             hip_rots.append(h_rot)
@@ -398,31 +410,113 @@ class GolfBiomechanicsAnalyzer:
 
     def _detect_address_frame(self, speeds: list[float]) -> int:
         """Last quiet frame before backswing wrist motion begins."""
-        sample = speeds[20:min(200, self.n_frames)]
+        n = self.n_frames
+        sample_start = min(20, max(1, n // 8))
+        sample_end = min(max(sample_start + 5, 200), max(sample_start + 6, (n * 3) // 4))
+        sample = speeds[sample_start:sample_end]
         if not sample:
             return 0
 
         quiet = float(np.percentile(sample, 25))
         threshold = max(2.0, quiet * 3.5 + 0.8)
 
+        search_start = min(35, max(3, n // 12))
+        search_end = max(search_start + 1, min(280, n - 12))
+
         movement_start: int | None = None
-        for i in range(35, min(280, self.n_frames - 12)):
-            if float(np.mean(speeds[i : i + 8])) > threshold:
+        for i in range(search_start, search_end):
+            if float(np.mean(speeds[i : i + min(8, max(1, n - i))])) > threshold:
                 movement_start = i
                 break
 
         if movement_start is None:
             return 0
-        return max(0, movement_start - 10)
+        return max(0, movement_start - min(10, max(2, n // 20)))
 
     def _shoulder_rotation_at(self, frame: int, address: int, address_width: float) -> float:
-        width_rot = self._rotation_from_width(self._shoulder_width(frame), address_width)
+        current_width = self._shoulder_width(frame)
+        width_rot = self._rotation_from_width(current_width, address_width)
         angle_rot = abs(
             self._shoulder_line_angle_deg(frame) - self._shoulder_line_angle_deg(address)
         )
-        return max(width_rot, angle_rot)
+        # Face-on at top: shoulder width collapses when one shoulder occludes the other.
+        if current_width < address_width * 0.65:
+            return min(angle_rot, 90.0)
+        return min(max(width_rot, angle_rot), 90.0)
+
+    def _hip_rotation_at(self, frame: int, address: int, address_hip_width: float) -> float:
+        current_width = self._hip_width(frame)
+        width_rot = (
+            self._rotation_from_width(current_width, address_hip_width)
+            if address_hip_width > 0
+            else 0.0
+        )
+        angle_rot = abs(self._hip_line_angle_deg(frame) - self._hip_line_angle_deg(address))
+        if current_width < address_hip_width * 0.65:
+            return min(angle_rot, 90.0)
+        return min(max(width_rot, angle_rot), 90.0)
 
     def _detect_swing_phases(self) -> SwingPhases:
+        primary = self._detect_primary_swing_phases()
+        if primary is not None:
+            return primary
+        return self._detect_swing_phases_from_speed()
+
+    def _detect_primary_swing_phases(self) -> SwingPhases | None:
+        """
+        Find the main swing (largest shoulder turn), ignoring early waggles.
+        Works on both full videos and trimmed segments.
+        """
+        if self.n_frames < 20:
+            return None
+
+        address_width = self._median_shoulder_width() or 1.0
+        speeds = self._wrist_speed_series()
+
+        top = 10
+        best_rot = 0.0
+        for i in range(10, self.n_frames - 12):
+            rot = self._shoulder_rotation_at(i, 0, address_width)
+            if rot > best_rot:
+                best_rot = rot
+                top = i
+
+        if best_rot < 8.0:
+            return None
+
+        pre_top = speeds[max(0, top - 140) : top]
+        quiet = float(np.percentile(pre_top, 20)) if pre_top else 1.0
+        threshold = max(1.2, quiet * 2.8 + 0.5)
+
+        address = max(0, top - 40)
+        for i in range(top - 5, max(0, top - 140), -1):
+            window = speeds[max(0, i - 4) : i + 1]
+            if window and float(np.mean(window)) <= threshold:
+                address = i
+                break
+
+        impact = min(top + 10, self.n_frames - 1)
+        post_top: list[tuple[int, float]] = []
+        post_top_limit = min(self.n_frames - 1, top + 120)
+        for i in range(top + 5, post_top_limit):
+            wy = self._lead_wrist_y(i)
+            if wy is not None:
+                post_top.append((i, wy))
+        if post_top:
+            impact = max(post_top, key=lambda t: t[1])[0]
+
+        impact = max(impact, top + 5)
+        impact = min(impact, self.n_frames - 1)
+
+        return SwingPhases(
+            address=address,
+            top=top,
+            impact=impact,
+            backswing_frames=max(1, top - address),
+            downswing_frames=max(1, impact - top),
+        )
+
+    def _detect_swing_phases_from_speed(self) -> SwingPhases:
         speeds = self._wrist_speed_series()
         address = self._detect_address_frame(speeds)
         address_width = self._shoulder_width(address) or self._median_shoulder_width() or 1.0

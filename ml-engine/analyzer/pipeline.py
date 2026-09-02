@@ -16,16 +16,17 @@ from analyzer.metrics.compute import compute_all_metrics
 from analyzer.overlay import render_annotated_video
 from analyzer.pose import FramePose, PoseExtractor
 from analyzer.scoring import score_swing
+from analyzer.swing_trim import TrimWindow, scout_trim_window
 from analyzer.tuning.loader import resolve_profile
 from analyzer.tuning.schema import TuningProfile
 from analyzer.validator import validate_video
-from analyzer.video_io import iter_frames, read_video_meta
+from analyzer.video_io import VideoMeta, iter_frames, read_video_meta
 
 
 class StageId(str, Enum):
     VALIDATE = "validate"
-    DETECT_POSE = "detect_pose"
     QUALITY_CHECK = "quality_check"
+    LOCATE_SWING = "locate_swing"
     EXTRACT_POSE = "extract_pose"
     COMPUTE_METRICS = "compute_metrics"
     RENDER_VIDEO = "render_video"
@@ -34,8 +35,8 @@ class StageId(str, Enum):
 
 STAGE_LABELS: dict[StageId, str] = {
     StageId.VALIDATE: "Memvalidasi video",
-    StageId.DETECT_POSE: "Mendeteksi pose awal",
     StageId.QUALITY_CHECK: "Memeriksa kualitas & sudut kamera",
+    StageId.LOCATE_SWING: "Mencari segmen swing",
     StageId.EXTRACT_POSE: "Mengekstrak pose per frame",
     StageId.COMPUTE_METRICS: "Menghitung metrik sendi",
     StageId.RENDER_VIDEO: "Membuat video analisis",
@@ -60,6 +61,7 @@ class AnalysisResult:
     metrics: dict[str, Any]
     validation: dict[str, Any]
     tuning: dict[str, Any]
+    trim: dict[str, Any]
     stages: list[StageResult] = field(default_factory=list)
     annotated_video_url: str = ""
     analysis_id: str = ""
@@ -119,15 +121,24 @@ class SwingAnalysisPipeline:
             lambda: validate_video(video_path, meta, self._pose, profile.validation),
         )
 
+        trim: TrimWindow = run_stage(
+            StageId.LOCATE_SWING,
+            lambda: scout_trim_window(video_path, meta, self._pose),
+        )
+
         poses: list[FramePose | None] = run_stage(
             StageId.EXTRACT_POSE,
-            lambda: self._extract_all_poses(video_path),
+            lambda: self._extract_poses_range(
+                video_path,
+                trim.source_start_frame,
+                trim.source_end_frame,
+            ),
         )
 
         valid_poses = [p for p in poses if p is not None]
         if len(valid_poses) < config.MIN_FRAME_COUNT // 2:
             raise ValidationError(
-                "Pose tidak cukup terdeteksi sepanjang video. Coba rekam ulang dengan pencahayaan lebih baik.",
+                "Pose tidak cukup terdeteksi pada segmen swing. Coba rekam ulang dengan pencahayaan lebih baik.",
                 code="insufficient_pose_data",
             )
 
@@ -136,20 +147,38 @@ class SwingAnalysisPipeline:
             lambda: compute_all_metrics(valid_poses, profile),
         )
 
+        # Attach source-frame phase markers for verification (relative to original upload)
+        if metrics.get("biomechanics"):
+            metrics["biomechanics"]["address_frame_source"] = trim.address_frame_source
+            metrics["biomechanics"]["top_frame_source"] = trim.top_frame_source
+            metrics["biomechanics"]["impact_frame_source"] = trim.impact_frame_source
+            metrics["biomechanics"]["trim_start_frame_source"] = trim.source_start_frame
+
         output_filename = f"{analysis_id}.mp4"
         output_path = str(config.OUTPUT_DIR / output_filename)
 
         run_stage(
             StageId.RENDER_VIDEO,
             lambda: render_annotated_video(
-                video_path, output_path, poses, meta.width, meta.height, meta.fps
+                video_path,
+                output_path,
+                poses,
+                meta.width,
+                meta.height,
+                meta.fps,
+                start_frame=trim.source_start_frame,
+                end_frame=trim.source_end_frame,
             ),
         )
 
         score_data = run_stage(StageId.SCORE, lambda: score_swing(metrics, profile))
-
-        # Replace summary with tuning-adjusted values used for scoring
         metrics["summary"] = score_data["summary"]
+
+        trim_dict = trim.to_dict()
+        if meta.fps > 0:
+            trim_dict["address_frame_in_trim"] = max(
+                0, trim.address_frame_source - trim.source_start_frame
+            )
 
         return AnalysisResult(
             status="success",
@@ -157,6 +186,7 @@ class SwingAnalysisPipeline:
             recommendation=score_data["recommendation"],
             metrics=metrics,
             tuning=profile.to_dict(),
+            trim=trim_dict,
             validation={
                 "sharpness": validation.sharpness,
                 "visible_keypoint_ratio": validation.visible_keypoint_ratio,
@@ -176,9 +206,14 @@ class SwingAnalysisPipeline:
             analysis_id=analysis_id,
         )
 
-    def _extract_all_poses(self, video_path: str) -> list[FramePose | None]:
+    def _extract_poses_range(
+        self,
+        video_path: str,
+        start_frame: int,
+        end_frame: int,
+    ) -> list[FramePose | None]:
         poses: list[FramePose | None] = []
-        for i, frame in enumerate(iter_frames(video_path)):
+        for i, frame in enumerate(iter_frames(video_path, start_frame, end_frame)):
             poses.append(self._pose.detect(frame, i))
         return poses
 
@@ -191,6 +226,7 @@ class SwingAnalysisPipeline:
             "metrics": result.metrics,
             "validation": result.validation,
             "tuning": result.tuning,
+            "trim": result.trim,
             "stages": [
                 {
                     "id": s.id,

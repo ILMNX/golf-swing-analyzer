@@ -50,6 +50,8 @@ def render_annotated_video(
     meta_width: int,
     meta_height: int,
     meta_fps: float,
+    start_frame: int = 0,
+    end_frame: int | None = None,
 ) -> None:
     from analyzer.video_io import create_video_writer, iter_frames, transcode_for_browser
 
@@ -57,7 +59,7 @@ def render_annotated_video(
     trails: dict[int, deque] = {idx: deque(maxlen=20) for idx in TRAIL_JOINTS}
 
     try:
-        for i, frame in enumerate(iter_frames(input_path)):
+        for i, frame in enumerate(iter_frames(input_path, start_frame, end_frame)):
             pose = poses[i] if i < len(poses) else None
             if pose is not None:
                 frame = draw_pose(frame, pose, trails)

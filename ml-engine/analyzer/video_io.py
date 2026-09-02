@@ -77,19 +77,30 @@ def validate_video_meta(meta: VideoMeta) -> None:
         )
 
 
-def iter_frames(path: str):
+def iter_frames(path: str, start_frame: int = 0, end_frame: int | None = None):
+    """Yield frames from video, optionally bounded to [start_frame, end_frame] inclusive."""
     cap = cv2.VideoCapture(path)
     if not cap.isOpened():
         raise ValidationError("Gagal membuka video.", code="invalid_video")
 
+    if start_frame > 0:
+        cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+
     try:
-        while True:
+        frame_idx = start_frame
+        while end_frame is None or frame_idx <= end_frame:
             ok, frame = cap.read()
             if not ok:
                 break
             yield frame
+            frame_idx += 1
     finally:
         cap.release()
+
+
+def iter_all_frames(path: str):
+    """Yield all frames from video."""
+    yield from iter_frames(path)
 
 
 def sample_frame_indices(frame_count: int, sample_size: int) -> list[int]:

@@ -12,6 +12,7 @@ from analyzer.keypoints import ANGLE_TRIPLETS, DISTANCE_PAIRS, KeypointIndex
 from analyzer.metrics.biomechanics import (
     BIOMECHANICS_MIN_CONFIDENCE,
     GolfBiomechanicsAnalyzer,
+    SwingPhases,
     biomechanics_to_dict,
     biomechanics_to_summary,
 )
@@ -92,13 +93,14 @@ def compute_joint_angles(poses: list[FramePose], min_conf: float) -> dict[str, d
 def compute_all_metrics(
     poses: list[FramePose],
     profile: TuningProfile | None = None,
+    phase_hints: SwingPhases | None = None,
 ) -> dict[str, Any]:
     valid_poses = [p for p in poses if PoseExtractor.visible_ratio(p) > 0.3]
     if not valid_poses:
         valid_poses = [p for p in poses if p is not None]
 
     analyzer = GolfBiomechanicsAnalyzer(valid_poses)
-    bio = analyzer.analyze()
+    bio = analyzer.analyze(phase_hints=phase_hints)
     summary = biomechanics_to_summary(bio)
 
     min_conf = BIOMECHANICS_MIN_CONFIDENCE

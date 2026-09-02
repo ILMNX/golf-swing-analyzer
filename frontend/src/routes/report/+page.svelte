@@ -117,6 +117,26 @@
 					</div>
 				</div>
 			{/if}
+			{#if report.trim?.applied}
+				<div class="mt-4 border-t border-border pt-4">
+					<p class="label mb-2">Auto-Trim Segmen Swing</p>
+					<p class="text-sm text-offwhite">
+						Setup <span class="font-semibold text-highlight">{report.trim.setup_trimmed_sec.toFixed(1)}s</span>
+						dihapus &middot; menganalisis
+						<span class="font-semibold">{report.trim.trimmed_start_sec.toFixed(1)}s – {report.trim.trimmed_end_sec.toFixed(1)}s</span>
+						dari {report.trim.original_duration_sec.toFixed(1)}s total
+					</p>
+					<p class="mt-2 text-xs text-muted">
+						Frame sumber: {report.trim.source_start_frame}–{report.trim.source_end_frame}
+						&middot; Address #{report.trim.address_frame_source}
+						&middot; Top #{report.trim.top_frame_source}
+						&middot; Impact #{report.trim.impact_frame_source}
+					</p>
+					<p class="mt-1 text-xs text-disabled">
+						Video tracking hanya menampilkan segmen yang dipotong — bukan full upload.
+					</p>
+				</div>
+			{/if}
 		</div>
 
 		<!-- Next swing focus -->

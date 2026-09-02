@@ -128,6 +128,26 @@ export interface ValidationInfo {
 	};
 }
 
+export interface TrimInfo {
+	applied: boolean;
+	source_start_frame: number;
+	source_end_frame: number;
+	address_frame_source: number;
+	top_frame_source: number;
+	impact_frame_source: number;
+	original_frame_count: number;
+	trimmed_frame_count: number;
+	original_duration_sec: number;
+	trimmed_duration_sec: number;
+	setup_trimmed_sec: number;
+	trimmed_start_sec: number;
+	trimmed_end_sec: number;
+	scan_step: number;
+	padding_before_sec: number;
+	padding_after_sec: number;
+	address_frame_in_trim?: number;
+}
+
 export interface SwingAnalysis {
 	status: string;
 	score: number;
@@ -137,6 +157,7 @@ export interface SwingAnalysis {
 	metrics: SwingMetrics;
 	validation?: ValidationInfo;
 	tuning?: TuningInfo;
+	trim?: TrimInfo;
 	stages?: AnalysisStage[];
 	annotated_video_url?: string;
 	analysis_id?: string;
@@ -208,6 +229,7 @@ export const SHOT_LABELS: Record<string, string> = Object.fromEntries(
 export const ANALYSIS_STAGES = [
 	{ id: 'validate', label: 'Memvalidasi video' },
 	{ id: 'quality_check', label: 'Memeriksa kualitas & sudut kamera' },
+	{ id: 'locate_swing', label: 'Mencari segmen swing' },
 	{ id: 'extract_pose', label: 'Mengekstrak pose per frame' },
 	{ id: 'compute_metrics', label: 'Menghitung metrik sendi' },
 	{ id: 'render_video', label: 'Membuat video analisis' },

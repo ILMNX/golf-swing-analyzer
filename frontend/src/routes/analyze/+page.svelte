@@ -40,7 +40,7 @@
 		stageIndex = 0;
 		stageTimer = setInterval(() => {
 			stageIndex = Math.min(stageIndex + 1, ANALYSIS_STAGES.length - 1);
-		}, 4000);
+		}, 3500);
 	}
 
 	function stopStageTimer() {
