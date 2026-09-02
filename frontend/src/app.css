@@ -3,12 +3,20 @@
 @tailwind utilities;
 
 @layer base {
+	html {
+		@apply overflow-x-hidden;
+	}
+
 	body {
-		@apply min-h-screen bg-obsidian font-sans text-offwhite antialiased;
+		@apply min-h-screen w-full overflow-x-hidden bg-obsidian font-sans text-offwhite antialiased;
 	}
 }
 
 @layer components {
+	.container-page {
+		@apply mx-auto w-full min-w-0 max-w-6xl px-4 sm:px-6;
+	}
+
 	.btn-primary {
 		@apply inline-flex items-center justify-center gap-2 rounded-md bg-golf px-5 py-2.5 text-sm font-semibold text-offwhite transition hover:bg-golf/90 focus:outline-none focus:ring-1 focus:ring-golf focus:ring-offset-1 focus:ring-offset-obsidian disabled:cursor-not-allowed disabled:opacity-40;
 	}
@@ -22,11 +30,11 @@
 	}
 
 	.card {
-		@apply rounded-md border border-border bg-graphite p-5;
+		@apply min-w-0 rounded-md border border-border bg-graphite p-4 sm:p-5;
 	}
 
 	.label {
-		@apply mb-2 block font-sans text-[11px] font-semibold uppercase tracking-widest text-muted;
+		@apply mb-2 block font-sans text-[11px] font-semibold uppercase tracking-wide text-muted sm:tracking-widest;
 	}
 
 	.section-title {
@@ -34,7 +42,7 @@
 	}
 
 	.page-title {
-		@apply font-display text-3xl font-bold tracking-tight text-offwhite sm:text-4xl;
+		@apply font-display text-2xl font-bold tracking-tight text-offwhite sm:text-3xl lg:text-4xl;
 	}
 
 	.metric-value {

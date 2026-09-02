@@ -5,14 +5,14 @@
 	let { children } = $props();
 </script>
 
-<div class="flex min-h-screen flex-col">
+<div class="flex min-h-screen w-full flex-col overflow-x-hidden">
 	<Navbar />
-	<main class="flex-1">
+	<main class="w-full min-w-0 flex-1">
 		{@render children()}
 	</main>
-	<footer class="border-t border-border py-5">
-		<div class="mx-auto max-w-6xl px-4 sm:px-6">
-			<p class="text-xs uppercase tracking-widest text-disabled">
+	<footer class="w-full border-t border-border py-5">
+		<div class="container-page">
+			<p class="text-xs uppercase tracking-wide text-disabled sm:tracking-widest">
 				SwingLab &mdash; Golf Swing Analyzer
 			</p>
 		</div>

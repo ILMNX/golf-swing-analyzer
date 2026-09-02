@@ -32,7 +32,7 @@
 					{#each clubs as club}
 						<button
 							type="button"
-							class="rounded-md border px-3 py-1.5 text-xs font-medium uppercase tracking-wide transition
+							class="rounded-md border px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-wide transition sm:px-3 sm:text-xs
 								{value === club.value
 								? 'border-golf bg-golf/10 text-offwhite'
 								: 'border-border text-muted hover:border-muted hover:text-offwhite'}"

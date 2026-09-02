@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { Info, Loader2, Upload } from '@lucide/svelte';
 	import ClubSelector from '$lib/components/ClubSelector.svelte';
 	import TutorialModal from '$lib/components/TutorialModal.svelte';
 	import { uploadSwing, saveReport } from '$lib/api';
@@ -74,127 +75,122 @@
 	}
 </script>
 
-<section class="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-	<div class="mb-8 flex items-end justify-between gap-4">
-		<div>
+<section class="container-page py-8 sm:py-10">
+	<div class="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
+		<div class="min-w-0">
 			<p class="label">Sesi Baru</p>
 			<h1 class="page-title">Analisis Swing</h1>
 		</div>
-		<button type="button" class="btn-ghost" onclick={() => (showTutorial = true)}>
+		<button type="button" class="btn-secondary shrink-0 self-start text-xs sm:self-auto" onclick={() => (showTutorial = true)}>
+			<Info size={15} strokeWidth={1.5} />
 			Panduan Rekaman
 		</button>
 	</div>
 
 	<form
-		class="grid gap-6 lg:grid-cols-12"
+		class="flex w-full min-w-0 flex-col gap-5"
 		onsubmit={(e) => {
 			e.preventDefault();
 			submit();
 		}}
 	>
-		<!-- Controls -->
-		<div class="space-y-5 lg:col-span-4">
-			<div class="card">
-				<p class="label">Jenis Pukulan</p>
-				<div class="space-y-1">
-					{#each SHOT_OPTIONS as shot}
-						<button
-							type="button"
-							class="w-full rounded-md border px-3 py-2.5 text-left transition
-								{shotType === shot.value
-								? 'border-golf bg-golf/10'
-								: 'border-transparent hover:border-border'}"
-							onclick={() => (shotType = shot.value)}
-						>
-							<p class="text-sm font-medium text-offwhite">{shot.label}</p>
-							<p class="text-xs text-muted">{shot.description}</p>
-						</button>
-					{/each}
-				</div>
-			</div>
-
-			<div class="card">
-				<p class="label">Club</p>
-				<ClubSelector bind:value={club} />
+		<!-- Shot type — single row -->
+		<div class="card w-full">
+			<p class="label">Jenis Pukulan</p>
+			<div class="grid grid-cols-4 gap-1.5 sm:gap-2">
+				{#each SHOT_OPTIONS as shot}
+					<button
+						type="button"
+						title={shot.description}
+						class="min-w-0 rounded-md border px-1 py-2.5 text-center transition sm:px-2 sm:py-3
+							{shotType === shot.value
+							? 'border-golf bg-golf/10 text-offwhite'
+							: 'border-border text-muted hover:border-muted hover:text-offwhite'}"
+						onclick={() => (shotType = shot.value)}
+					>
+						<span class="block text-[10px] font-semibold uppercase leading-tight tracking-wide sm:text-xs">
+							{shot.label}
+						</span>
+					</button>
+				{/each}
 			</div>
 		</div>
 
-		<!-- Video -->
-		<div class="lg:col-span-8">
-			<div class="card h-full">
-				<p class="label">Video Swing</p>
+		<div class="grid w-full min-w-0 gap-5 lg:grid-cols-12">
+			<!-- Club -->
+			<div class="min-w-0 lg:col-span-4">
+				<div class="card">
+					<p class="label">Club</p>
+					<ClubSelector bind:value={club} />
+				</div>
+			</div>
 
-				{#if videoPreview}
-					<div class="relative border border-border bg-obsidian">
-						<video src={videoPreview} controls class="max-h-80 w-full object-contain">
-							<track kind="captions" />
-						</video>
-						<button
-							type="button"
-							class="absolute right-2 top-2 border border-border bg-graphite px-2 py-1 text-xs text-muted hover:text-offwhite"
-							onclick={removeVideo}
+			<!-- Video -->
+			<div class="min-w-0 lg:col-span-8">
+				<div class="card h-full">
+					<p class="label">Video Swing</p>
+
+					{#if videoPreview}
+						<div class="relative w-full overflow-hidden border border-border bg-obsidian">
+							<video src={videoPreview} controls class="max-h-72 w-full object-contain sm:max-h-80">
+								<track kind="captions" />
+							</video>
+							<button
+								type="button"
+								class="absolute right-2 top-2 border border-border bg-graphite px-2 py-1 text-xs text-muted hover:text-offwhite"
+								onclick={removeVideo}
+							>
+								Hapus
+							</button>
+						</div>
+						<p class="mt-2 truncate text-xs text-disabled">{videoFile?.name}</p>
+					{:else}
+						<div
+							class="flex min-h-48 w-full cursor-pointer flex-col items-center justify-center border border-dashed px-4 py-12 transition sm:min-h-64 sm:px-6 sm:py-16
+								{dragOver ? 'border-golf bg-golf/5' : 'border-border hover:border-muted'}"
+							role="button"
+							tabindex="0"
+							ondragover={(e) => {
+								e.preventDefault();
+								dragOver = true;
+							}}
+							ondragleave={() => (dragOver = false)}
+							ondrop={onDrop}
+							onclick={() => document.getElementById('video-upload')?.click()}
+							onkeydown={(e) => e.key === 'Enter' && document.getElementById('video-upload')?.click()}
 						>
-							Hapus
+							<Upload size={28} strokeWidth={1.5} class="mb-3 text-muted" />
+							<p class="text-center text-sm font-medium text-offwhite">Seret video ke sini</p>
+							<p class="mt-1 text-center text-xs text-muted">
+								atau klik untuk memilih &middot; maks. {maxSizeMB} MB
+							</p>
+						</div>
+					{/if}
+
+					<input
+						id="video-upload"
+						type="file"
+						accept="video/*"
+						class="hidden"
+						onchange={onFileInput}
+					/>
+
+					{#if error}
+						<p class="mt-4 border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+							{error}
+						</p>
+					{/if}
+
+					<div class="mt-5 flex justify-end border-t border-border pt-4 sm:mt-6 sm:pt-5">
+						<button type="submit" class="btn-primary w-full sm:w-auto" disabled={loading || !videoFile}>
+							{#if loading}
+								<Loader2 size={16} strokeWidth={1.5} class="animate-spin" />
+								Memproses...
+							{:else}
+								Analisis Swing
+							{/if}
 						</button>
 					</div>
-					<p class="mt-2 truncate text-xs text-disabled">{videoFile?.name}</p>
-				{:else}
-					<div
-						class="flex min-h-64 cursor-pointer flex-col items-center justify-center border border-dashed px-6 py-16 transition
-							{dragOver ? 'border-golf bg-golf/5' : 'border-border hover:border-muted'}"
-						role="button"
-						tabindex="0"
-						ondragover={(e) => {
-							e.preventDefault();
-							dragOver = true;
-						}}
-						ondragleave={() => (dragOver = false)}
-						ondrop={onDrop}
-						onclick={() => document.getElementById('video-upload')?.click()}
-						onkeydown={(e) => e.key === 'Enter' && document.getElementById('video-upload')?.click()}
-					>
-						<svg
-							width="32"
-							height="32"
-							viewBox="0 0 32 32"
-							fill="none"
-							class="mb-4 text-muted"
-							aria-hidden="true"
-						>
-							<rect x="4" y="8" width="24" height="16" rx="2" stroke="currentColor" stroke-width="1.5"/>
-							<path d="M13 14l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-							<path d="M16 17v-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-						</svg>
-						<p class="text-sm font-medium text-offwhite">Seret video ke sini</p>
-						<p class="mt-1 text-xs text-muted">atau klik untuk memilih &middot; maks. {maxSizeMB} MB</p>
-					</div>
-				{/if}
-
-				<input
-					id="video-upload"
-					type="file"
-					accept="video/*"
-					class="hidden"
-					onchange={onFileInput}
-				/>
-
-				{#if error}
-					<p class="mt-4 border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
-						{error}
-					</p>
-				{/if}
-
-				<div class="mt-6 flex justify-end border-t border-border pt-5">
-					<button type="submit" class="btn-primary" disabled={loading || !videoFile}>
-						{#if loading}
-							<span
-								class="inline-block h-3.5 w-3.5 animate-spin rounded-full border border-offwhite border-t-transparent"
-							></span>
-							Memproses...
-						{:else}
-							Analisis Swing
-						{/if}
-					</button>
 				</div>
 			</div>
 		</div>

@@ -1,7 +1,6 @@
-<section class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
-	<div class="grid items-end gap-12 lg:grid-cols-12 lg:gap-16">
-		<!-- Hero — left-aligned editorial -->
-		<div class="lg:col-span-7">
+<section class="container-page py-12 sm:py-16 lg:py-24">
+	<div class="grid w-full min-w-0 items-end gap-10 lg:grid-cols-12 lg:gap-16">
+		<div class="min-w-0 lg:col-span-7">
 			<p class="label mb-4">Swing Analysis</p>
 			<h1 class="page-title leading-none">
 				Ukur.<br />
@@ -12,28 +11,27 @@
 				Alat analisis performa swing golf berbasis pose detection. Upload video, konfigurasi
 				club, dan dapatkan metrik terukur beserta rekomendasi perbaikan.
 			</p>
-			<div class="mt-10 flex flex-wrap gap-3">
+			<div class="mt-8 flex flex-wrap gap-3 sm:mt-10">
 				<a href="/analyze" class="btn-primary">Analisis Swing</a>
 				<a href="/report" class="btn-secondary">Laporan Terakhir</a>
 			</div>
 		</div>
 
-		<!-- Stats panel -->
-		<div class="lg:col-span-5">
+		<div class="min-w-0 lg:col-span-5">
 			<div class="card">
 				<p class="label mb-6">Yang Diukur</p>
 				<div class="space-y-5">
 					{#each [
-						{ label: 'Swing Tempo', unit: 'ratio' },
-						{ label: 'Postur', unit: 'score' },
-						{ label: 'Rotasi', unit: 'degrees' },
-						{ label: 'Keseimbangan', unit: 'score' }
+						{ label: 'Swing Tempo' },
+						{ label: 'Postur' },
+						{ label: 'Rotasi' },
+						{ label: 'Keseimbangan' }
 					] as metric}
-						<div class="flex items-baseline justify-between border-b border-border pb-4 last:border-0 last:pb-0">
-							<span class="text-xs font-medium uppercase tracking-wider text-muted">
+						<div class="flex items-baseline justify-between gap-4 border-b border-border pb-4 last:border-0 last:pb-0">
+							<span class="text-xs font-medium uppercase tracking-wide text-muted">
 								{metric.label}
 							</span>
-							<span class="font-display text-sm font-semibold text-disabled">—</span>
+							<span class="shrink-0 font-display text-sm font-semibold text-disabled">—</span>
 						</div>
 					{/each}
 				</div>
@@ -42,10 +40,10 @@
 	</div>
 </section>
 
-<section class="divider">
-	<div class="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-		<p class="label mb-8">Proses</p>
-		<div class="grid gap-px border border-border bg-border sm:grid-cols-3">
+<section class="divider w-full">
+	<div class="container-page py-12 sm:py-16">
+		<p class="label mb-6 sm:mb-8">Proses</p>
+		<div class="grid w-full min-w-0 gap-px border border-border bg-border sm:grid-cols-3">
 			{#each [
 				{
 					step: '01',
@@ -63,9 +61,9 @@
 					desc: 'Lihat skor, metrik detail, dan rekomendasi perbaikan yang dapat ditindaklanjuti.'
 				}
 			] as item}
-				<div class="bg-graphite p-6">
+				<div class="min-w-0 bg-graphite p-5 sm:p-6">
 					<p class="font-display text-2xl font-bold text-border">{item.step}</p>
-					<h3 class="mt-3 font-display text-sm font-semibold uppercase tracking-wider text-offwhite">
+					<h3 class="mt-3 font-display text-sm font-semibold uppercase tracking-wide text-offwhite">
 						{item.title}
 					</h3>
 					<p class="mt-2 text-sm leading-relaxed text-muted">{item.desc}</p>
@@ -75,14 +73,14 @@
 	</div>
 </section>
 
-<section class="mx-auto max-w-6xl px-4 pb-20 sm:px-6">
-	<div class="flex flex-col items-start justify-between gap-6 border border-border bg-graphite p-6 sm:flex-row sm:items-center">
-		<div>
+<section class="container-page pb-12 sm:pb-20">
+	<div class="flex w-full min-w-0 flex-col items-start justify-between gap-5 border border-border bg-graphite p-5 sm:flex-row sm:items-center sm:gap-6 sm:p-6">
+		<div class="min-w-0">
 			<p class="label">Siap Mulai</p>
-			<p class="font-display text-lg font-semibold text-offwhite">
+			<p class="font-display text-base font-semibold text-offwhite sm:text-lg">
 				Baca panduan rekaman sebelum sesi pertama.
 			</p>
 		</div>
-		<a href="/analyze" class="btn-primary shrink-0">Mulai Sesi</a>
+		<a href="/analyze" class="btn-primary w-full shrink-0 sm:w-auto">Mulai Sesi</a>
 	</div>
 </section>
