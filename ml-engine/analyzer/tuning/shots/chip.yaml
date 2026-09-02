@@ -17,19 +17,21 @@ metrics_focus:
   - posture
 
 expected_ranges:
-  right_wrist_travel_px:
-    min: 20
-    ideal: 50
-    max: 90
-  shoulder_rotation_px:
-    min: 5
-    ideal: 12
-    max: 25
+  x_factor_deg:
+    max: 20
+  head_movement_normalized:
+    max: 0.20
+  hip_sway_normalized:
+    max: 0.25
+  tempo_ratio:
+    min: 2.0
+    ideal: 2.8
+    max: 3.5
 
 recommendation_rules:
   - metric: balance
     below: 75
-    message: "Keseimbangan penting pada chip — distribusikan berat ke kaki depan."
+    message: "Sway berlebihan pada chip — distribusikan berat ke kaki depan."
   - metric: head_stability
     below: 72
     message: "Kepala bergerak saat chip — pertahankan posisi relatif terhadap bola."

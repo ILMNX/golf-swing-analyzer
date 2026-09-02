@@ -17,16 +17,18 @@ metrics_focus:
   - posture
 
 expected_ranges:
-  right_wrist_travel_px:
-    min: 10
-    ideal: 30
-    max: 60
-  shoulder_rotation_px:
-    min: 2
-    ideal: 6
-    max: 15
-  lateral_head_movement_px:
-    max: 25
+  x_factor_deg:
+    max: 10
+  head_movement_normalized:
+    max: 0.12
+  hip_sway_normalized:
+    max: 0.15
+  spine_angle_retention_deg:
+    max: 5
+  tempo_ratio:
+    min: 1.5
+    ideal: 2.0
+    max: 2.8
 
 recommendation_rules:
   - metric: head_stability
@@ -34,7 +36,7 @@ recommendation_rules:
     message: "Kepala bergerak saat putt — pertahankan mata di atas bola hingga impact."
   - metric: balance
     below: 75
-    message: "Stance putt tidak stabil — kaki selebar bahu, berat merata."
+    message: "Sway berlebihan saat putt — kaki selebar bahu, berat merata."
   - metric: tempo
     below: 65
     message: "Tempo putt tidak konsisten — latih pendulum motion dengan ritme sama."

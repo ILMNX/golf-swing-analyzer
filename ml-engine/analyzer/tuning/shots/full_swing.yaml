@@ -18,23 +18,24 @@ metrics_focus:
   - balance
 
 expected_ranges:
-  shoulder_rotation_px:
-    min: 15
-    ideal: 30
+  x_factor_deg:
+    min: 8
+    ideal: 25
     max: 50
-  hip_rotation_px:
-    min: 10
-    ideal: 22
-    max: 40
-  right_wrist_travel_px:
-    min: 80
-    ideal: 150
-    max: 250
+  tempo_ratio:
+    min: 2.6
+    ideal: 3.0
+    max: 3.6
+  spine_angle_retention_deg:
+    max: 15
+  lead_arm_straightness_impact_deg:
+    min: 155
+    ideal: 175
 
 recommendation_rules:
   - metric: rotation
     below: 72
-    message: "Rotasi bahu/hip kurang untuk full swing — fokus pada coil di backswing."
+    message: "X-factor kurang untuk full swing — fokus pada coil bahu lebih dari pinggul."
   - metric: tempo
     below: 68
     message: "Tempo full swing tidak smooth — hindari terburu-buru di transisi."

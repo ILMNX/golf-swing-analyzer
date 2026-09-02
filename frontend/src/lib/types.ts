@@ -37,31 +37,65 @@ export interface TuningInfo {
 
 export interface SwingMetrics {
 	summary: SwingMetricsSummary;
+	biomechanics?: {
+		handedness: string;
+		address_shoulder_width_px: number;
+		spine_angle_address_deg: number;
+		spine_angle_impact_deg: number;
+		spine_angle_retention_deg: number;
+		head_movement_normalized: number;
+		hip_sway_px: number;
+		hip_sway_normalized: number;
+		shoulder_rotation_max_deg: number;
+		hip_rotation_max_deg: number;
+		x_factor_deg: number;
+		tempo_ratio: number;
+		backswing_frames: number;
+		downswing_frames: number;
+		lead_arm_straightness_impact_deg: number;
+		top_frame: number;
+		impact_frame: number;
+		detection_quality: number;
+	};
+	posture?: {
+		spine_angle_address_deg: number;
+		spine_angle_impact_deg: number;
+		spine_angle_retention_deg: number;
+	};
 	head: {
 		stability_score: number;
-		lateral_movement_px: number;
-		vertical_movement_px: number;
+		movement_normalized?: number;
+		lateral_range_px?: number;
+		vertical_range_px?: number;
+		reference_shoulder_width_px?: number;
+		/** @deprecated legacy pixel metric */
+		lateral_movement_px?: number;
+		/** @deprecated legacy pixel metric */
+		vertical_movement_px?: number;
 	};
-	shoulders: {
-		width_px: StatValue;
-		tilt_px: StatValue;
-		level_score: number;
-		rotation_range_px: number;
+	rotation?: {
+		shoulder_rotation_max_deg: number;
+		hip_rotation_max_deg: number;
+		x_factor_deg: number;
 	};
-	hips: {
-		width_px: StatValue;
-		rotation_range_px: number;
+	tempo?: {
+		ratio: number;
+		backswing_frames: number;
+		downswing_frames: number;
+		top_frame: number;
+		impact_frame: number;
 	};
-	arms: {
-		left_elbow_angle_deg: StatValue;
-		right_elbow_angle_deg: StatValue;
-		left_wrist_travel_px: number;
-		right_wrist_travel_px: number;
+	balance?: {
+		sway_px: number;
+		sway_normalized: number;
 	};
-	legs: {
-		left_knee_angle_deg: StatValue;
-		right_knee_angle_deg: StatValue;
-		stance_width_px: StatValue;
+	arms?: {
+		lead_arm_straightness_impact_deg?: number;
+		handedness?: string;
+	};
+	quality?: {
+		detection_quality: number;
+		min_keypoint_confidence: number;
 	};
 	joint_distances: Record<string, StatValue>;
 	joint_angles: Record<string, StatValue>;

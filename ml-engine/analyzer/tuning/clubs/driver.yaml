@@ -1,29 +1,21 @@
-# Driver — maksimum rotasi & wrist travel
+# Driver — maksimum rotasi
 defaults:
   scoring_weights_delta:
     rotation: 0.05
     tempo: 0.03
 
 expected_ranges:
-  shoulder_rotation_px:
-    min: 25
-    ideal: 40
-    max: 60
-  hip_rotation_px:
-    min: 18
-    ideal: 35
-    max: 50
-  right_wrist_travel_px:
-    min: 120
-    ideal: 200
-    max: 320
-  stance_width_px:
-    ideal: 1.20
+  x_factor_deg:
+    min: 12
+    ideal: 28
+  tempo_ratio:
+    min: 2.8
+    ideal: 3.2
 
 recommendation_rules:
   - metric: rotation
     below: 75
-    message: "Rotasi kurang untuk driver — tingkatkan shoulder turn tanpa sway lateral."
+    message: "X-factor kurang untuk driver — tingkatkan shoulder turn tanpa sway lateral."
   - metric: tempo
     below: 70
     message: "Tempo driver terlalu cepat — smooth acceleration, bukan rush."

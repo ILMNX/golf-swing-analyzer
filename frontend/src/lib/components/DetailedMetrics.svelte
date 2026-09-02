@@ -25,6 +25,10 @@
 	function formatStat(stat: { avg: number; min: number; max: number }) {
 		return `${stat.avg.toFixed(1)} (min ${stat.min.toFixed(1)}, max ${stat.max.toFixed(1)})`;
 	}
+
+	function pct(n: number): string {
+		return `${(n * 100).toFixed(0)}%`;
+	}
 </script>
 
 <!-- Summary scores -->
@@ -40,6 +44,115 @@
 	{/each}
 </div>
 
+{#if metrics.quality}
+	<p class="mt-3 text-xs text-disabled">
+		Kualitas deteksi pose: {pct(metrics.quality.detection_quality)}
+		{#if metrics.arms?.handedness}
+			&middot; {metrics.arms.handedness === 'right' ? 'Right-handed' : 'Left-handed'}
+		{/if}
+	</p>
+{/if}
+
+<!-- Biomechanics core -->
+{#if metrics.biomechanics || metrics.posture}
+	<div class="mt-5 grid gap-5 lg:grid-cols-2">
+		<div class="card">
+			<p class="label">Postur — Spine Angle</p>
+			<dl class="space-y-2 text-sm">
+				<div class="flex justify-between gap-4">
+					<dt class="text-muted">Address</dt>
+					<dd class="text-offwhite">
+						{(metrics.posture?.spine_angle_address_deg ?? metrics.biomechanics?.spine_angle_address_deg ?? 0).toFixed(1)}°
+					</dd>
+				</div>
+				<div class="flex justify-between gap-4">
+					<dt class="text-muted">Impact</dt>
+					<dd class="text-offwhite">
+						{(metrics.posture?.spine_angle_impact_deg ?? metrics.biomechanics?.spine_angle_impact_deg ?? 0).toFixed(1)}°
+					</dd>
+				</div>
+				<div class="flex justify-between gap-4">
+					<dt class="text-muted">Retensi (Δ)</dt>
+					<dd class="text-offwhite">
+						{(metrics.posture?.spine_angle_retention_deg ?? metrics.biomechanics?.spine_angle_retention_deg ?? 0).toFixed(1)}°
+					</dd>
+				</div>
+			</dl>
+		</div>
+
+		<div class="card">
+			<p class="label">Rotasi — X-Factor</p>
+			<dl class="space-y-2 text-sm">
+				<div class="flex justify-between gap-4">
+					<dt class="text-muted">Shoulder Turn</dt>
+					<dd class="text-offwhite">
+						{(metrics.rotation?.shoulder_rotation_max_deg ?? metrics.biomechanics?.shoulder_rotation_max_deg ?? 0).toFixed(1)}°
+					</dd>
+				</div>
+				<div class="flex justify-between gap-4">
+					<dt class="text-muted">Hip Turn</dt>
+					<dd class="text-offwhite">
+						{(metrics.rotation?.hip_rotation_max_deg ?? metrics.biomechanics?.hip_rotation_max_deg ?? 0).toFixed(1)}°
+					</dd>
+				</div>
+				<div class="flex justify-between gap-4">
+					<dt class="text-muted">X-Factor</dt>
+					<dd class="font-display font-semibold text-offwhite">
+						{(metrics.rotation?.x_factor_deg ?? metrics.biomechanics?.x_factor_deg ?? 0).toFixed(1)}°
+					</dd>
+				</div>
+			</dl>
+		</div>
+	</div>
+{/if}
+
+<!-- Tempo & Balance -->
+{#if metrics.tempo || metrics.balance}
+	<div class="mt-5 grid gap-5 lg:grid-cols-2">
+		<div class="card">
+			<p class="label">Tempo</p>
+			<dl class="space-y-2 text-sm">
+				<div class="flex justify-between gap-4">
+					<dt class="text-muted">Rasio Backswing : Downswing</dt>
+					<dd class="font-display font-semibold text-offwhite">
+						{(metrics.tempo?.ratio ?? metrics.biomechanics?.tempo_ratio ?? 0).toFixed(2)} : 1
+					</dd>
+				</div>
+				<div class="flex justify-between gap-4">
+					<dt class="text-muted">Backswing</dt>
+					<dd class="text-offwhite">
+						{metrics.tempo?.backswing_frames ?? metrics.biomechanics?.backswing_frames ?? 0} frame
+					</dd>
+				</div>
+				<div class="flex justify-between gap-4">
+					<dt class="text-muted">Downswing</dt>
+					<dd class="text-offwhite">
+						{metrics.tempo?.downswing_frames ?? metrics.biomechanics?.downswing_frames ?? 0} frame
+					</dd>
+				</div>
+			</dl>
+		</div>
+
+		<div class="card">
+			<p class="label">Balance — Sway</p>
+			<dl class="space-y-2 text-sm">
+				<div class="flex justify-between gap-4">
+					<dt class="text-muted">Sway (normalized)</dt>
+					<dd class="text-offwhite">
+						{(metrics.balance?.sway_normalized ?? metrics.biomechanics?.hip_sway_normalized ?? 0).toFixed(3)}
+					</dd>
+				</div>
+				<div class="flex justify-between gap-4">
+					<dt class="text-muted">Lead Arm (impact)</dt>
+					<dd class="text-offwhite">
+						{(metrics.arms?.lead_arm_straightness_impact_deg ?? metrics.biomechanics?.lead_arm_straightness_impact_deg ?? 0).toFixed(1)}°
+					</dd>
+				</div>
+			</dl>
+		</div>
+	</div>
+{/if}
+
 <!-- Head -->
 <div class="card mt-5">
 	<p class="label">Kepala</p>
@@ -49,87 +162,17 @@
 			<p class="font-display text-lg font-semibold">{metrics.head.stability_score}</p>
 		</div>
 		<div>
-			<p class="text-xs text-muted">Gerak Lateral</p>
-			<p class="font-display text-lg font-semibold">{metrics.head.lateral_movement_px} px</p>
+			<p class="text-xs text-muted">Gerak Normalized</p>
+			<p class="font-display text-lg font-semibold">
+				{(metrics.head.movement_normalized ?? metrics.biomechanics?.head_movement_normalized ?? 0).toFixed(3)}
+			</p>
 		</div>
 		<div>
-			<p class="text-xs text-muted">Gerak Vertikal</p>
-			<p class="font-display text-lg font-semibold">{metrics.head.vertical_movement_px} px</p>
+			<p class="text-xs text-muted">Ref. Lebar Bahu</p>
+			<p class="font-display text-lg font-semibold">
+				{(metrics.head.reference_shoulder_width_px ?? metrics.biomechanics?.address_shoulder_width_px ?? 0).toFixed(0)} px
+			</p>
 		</div>
-	</div>
-</div>
-
-<!-- Shoulders & Hips -->
-<div class="mt-5 grid gap-5 lg:grid-cols-2">
-	<div class="card">
-		<p class="label">Pundak</p>
-		<dl class="space-y-2 text-sm">
-			<div class="flex justify-between gap-4">
-				<dt class="text-muted">Lebar</dt>
-				<dd class="text-offwhite">{formatStat(metrics.shoulders.width_px)} px</dd>
-			</div>
-			<div class="flex justify-between gap-4">
-				<dt class="text-muted">Level Score</dt>
-				<dd class="text-offwhite">{metrics.shoulders.level_score}</dd>
-			</div>
-			<div class="flex justify-between gap-4">
-				<dt class="text-muted">Rentang Rotasi</dt>
-				<dd class="text-offwhite">{metrics.shoulders.rotation_range_px} px</dd>
-			</div>
-		</dl>
-	</div>
-	<div class="card">
-		<p class="label">Pinggul</p>
-		<dl class="space-y-2 text-sm">
-			<div class="flex justify-between gap-4">
-				<dt class="text-muted">Lebar</dt>
-				<dd class="text-offwhite">{formatStat(metrics.hips.width_px)} px</dd>
-			</div>
-			<div class="flex justify-between gap-4">
-				<dt class="text-muted">Rentang Rotasi</dt>
-				<dd class="text-offwhite">{metrics.hips.rotation_range_px} px</dd>
-			</div>
-		</dl>
-	</div>
-</div>
-
-<!-- Arms & Legs -->
-<div class="mt-5 grid gap-5 lg:grid-cols-2">
-	<div class="card">
-		<p class="label">Lengan</p>
-		<dl class="space-y-2 text-sm">
-			<div class="flex justify-between gap-4">
-				<dt class="text-muted">Siku Kiri</dt>
-				<dd class="text-offwhite">{formatStat(metrics.arms.left_elbow_angle_deg)}°</dd>
-			</div>
-			<div class="flex justify-between gap-4">
-				<dt class="text-muted">Siku Kanan</dt>
-				<dd class="text-offwhite">{formatStat(metrics.arms.right_elbow_angle_deg)}°</dd>
-			</div>
-			<div class="flex justify-between gap-4">
-				<dt class="text-muted">Travel Pergelangan</dt>
-				<dd class="text-offwhite">
-					L {metrics.arms.left_wrist_travel_px}px / R {metrics.arms.right_wrist_travel_px}px
-				</dd>
-			</div>
-		</dl>
-	</div>
-	<div class="card">
-		<p class="label">Kaki</p>
-		<dl class="space-y-2 text-sm">
-			<div class="flex justify-between gap-4">
-				<dt class="text-muted">Lutut Kiri</dt>
-				<dd class="text-offwhite">{formatStat(metrics.legs.left_knee_angle_deg)}°</dd>
-			</div>
-			<div class="flex justify-between gap-4">
-				<dt class="text-muted">Lutut Kanan</dt>
-				<dd class="text-offwhite">{formatStat(metrics.legs.right_knee_angle_deg)}°</dd>
-			</div>
-			<div class="flex justify-between gap-4">
-				<dt class="text-muted">Lebar Stance</dt>
-				<dd class="text-offwhite">{formatStat(metrics.legs.stance_width_px)} px</dd>
-			</div>
-		</dl>
 	</div>
 </div>
 

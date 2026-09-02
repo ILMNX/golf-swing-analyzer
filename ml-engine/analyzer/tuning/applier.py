@@ -9,11 +9,14 @@ from analyzer.tuning.schema import ExpectedRange, TuningProfile
 
 # Maps expected_range keys to summary metric that gets penalized
 _RANGE_TO_SUMMARY: dict[str, str] = {
-    "shoulder_rotation_px": "rotation",
-    "hip_rotation_px": "rotation",
-    "right_wrist_travel_px": "tempo",
-    "lateral_head_movement_px": "head_stability",
-    "stance_width_px": "balance",
+    "x_factor_deg": "rotation",
+    "shoulder_rotation_max_deg": "rotation",
+    "hip_rotation_max_deg": "rotation",
+    "tempo_ratio": "tempo",
+    "spine_angle_retention_deg": "posture",
+    "head_movement_normalized": "head_stability",
+    "hip_sway_normalized": "balance",
+    "lead_arm_straightness_impact_deg": "posture",
 }
 
 
@@ -21,28 +24,43 @@ def _penalty_for_range(actual: float, expected: ExpectedRange) -> int:
     penalty = 0
     if expected.min is not None and actual < expected.min:
         gap = expected.min - actual
-        penalty += min(12, int(gap / max(expected.min, 1) * 15))
+        penalty += min(12, int(gap / max(abs(expected.min), 1) * 15))
     if expected.max is not None and actual > expected.max:
         gap = actual - expected.max
-        penalty += min(12, int(gap / max(expected.max, 1) * 15))
-    if expected.ideal is not None and expected.min is None and expected.max is None:
-        pass
+        penalty += min(12, int(gap / max(abs(expected.max), 1) * 15))
     return penalty
 
 
 def _extract_range_actuals(metrics: dict[str, Any]) -> dict[str, float]:
-    shoulders = metrics.get("shoulders", {})
-    hips = metrics.get("hips", {})
-    arms = metrics.get("arms", {})
+    bio = metrics.get("biomechanics", {})
+    posture = metrics.get("posture", {})
     head = metrics.get("head", {})
-    legs = metrics.get("legs", {})
+    rotation = metrics.get("rotation", {})
+    tempo = metrics.get("tempo", {})
+    balance = metrics.get("balance", {})
+    arms = metrics.get("arms", {})
 
     return {
-        "shoulder_rotation_px": float(shoulders.get("rotation_range_px", 0)),
-        "hip_rotation_px": float(hips.get("rotation_range_px", 0)),
-        "right_wrist_travel_px": float(arms.get("right_wrist_travel_px", 0)),
-        "lateral_head_movement_px": float(head.get("lateral_movement_px", 0)),
-        "stance_width_px": float(legs.get("stance_width_px", {}).get("avg", 0)),
+        "x_factor_deg": float(rotation.get("x_factor_deg", bio.get("x_factor_deg", 0))),
+        "shoulder_rotation_max_deg": float(
+            rotation.get("shoulder_rotation_max_deg", bio.get("shoulder_rotation_max_deg", 0))
+        ),
+        "hip_rotation_max_deg": float(
+            rotation.get("hip_rotation_max_deg", bio.get("hip_rotation_max_deg", 0))
+        ),
+        "tempo_ratio": float(tempo.get("ratio", bio.get("tempo_ratio", 0))),
+        "spine_angle_retention_deg": float(
+            posture.get("spine_angle_retention_deg", bio.get("spine_angle_retention_deg", 0))
+        ),
+        "head_movement_normalized": float(
+            head.get("movement_normalized", bio.get("head_movement_normalized", 0))
+        ),
+        "hip_sway_normalized": float(
+            balance.get("sway_normalized", bio.get("hip_sway_normalized", 0))
+        ),
+        "lead_arm_straightness_impact_deg": float(
+            arms.get("lead_arm_straightness_impact_deg", bio.get("lead_arm_straightness_impact_deg", 0))
+        ),
     }
 
 
@@ -89,7 +107,6 @@ def build_recommendation(
             "Pertahankan konsistensi dan fokus pada repeatability."
         )
 
-    # Deduplicate while preserving order
     seen: set[str] = set()
     unique: list[str] = []
     for tip in tips:

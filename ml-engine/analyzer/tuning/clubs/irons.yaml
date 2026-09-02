@@ -4,30 +4,18 @@ defaults:
     posture: 0.03
     tempo: 0.02
 
-iron_3:
-  expected_ranges:
-    shoulder_rotation_px: { min: 18, ideal: 28, max: 42 }
-    right_wrist_travel_px: { min: 90, ideal: 140, max: 220 }
-
-iron_5:
-  expected_ranges:
-    shoulder_rotation_px: { min: 16, ideal: 26, max: 40 }
-    right_wrist_travel_px: { min: 80, ideal: 130, max: 200 }
-
 iron_7:
   expected_ranges:
-    shoulder_rotation_px: { min: 14, ideal: 24, max: 38 }
-    right_wrist_travel_px: { min: 70, ideal: 120, max: 180 }
-
-iron_9:
-  expected_ranges:
-    shoulder_rotation_px: { min: 12, ideal: 20, max: 32 }
-    right_wrist_travel_px: { min: 60, ideal: 100, max: 150 }
+    x_factor_deg:
+      min: 15
+      ideal: 28
+    spine_angle_retention_deg:
+      max: 12
 
 recommendation_rules:
   - metric: posture
     below: 72
-    message: "Postur iron krusial — pertahankan spine angle konsisten dari address hingga impact."
+    message: "Spine angle berubah terlalu banyak — pertahankan sudut tubuh konsisten hingga impact."
   - metric: tempo
     below: 70
     message: "Tempo iron terlalu cepat — fokus pada descending blow yang terkontrol."

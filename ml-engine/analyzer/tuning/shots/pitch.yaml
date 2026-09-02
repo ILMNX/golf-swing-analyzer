@@ -17,14 +17,16 @@ metrics_focus:
   - rotation
 
 expected_ranges:
-  right_wrist_travel_px:
-    min: 40
-    ideal: 90
-    max: 140
-  shoulder_rotation_px:
-    min: 8
-    ideal: 18
+  x_factor_deg:
+    min: 10
+    ideal: 22
     max: 35
+  tempo_ratio:
+    min: 2.2
+    ideal: 2.8
+    max: 3.4
+  hip_sway_normalized:
+    max: 0.32
 
 recommendation_rules:
   - metric: tempo
@@ -32,4 +34,4 @@ recommendation_rules:
     message: "Tempo pitch harus terkontrol — hindari deceleration mendadak."
   - metric: balance
     below: 72
-    message: "Finish pitch tidak seimbang — tahan pose hingga bola mendarat."
+    message: "Sway berlebihan pada pitch — tahan finish hingga bola mendarat."

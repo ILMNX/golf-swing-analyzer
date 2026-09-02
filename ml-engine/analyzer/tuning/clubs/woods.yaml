@@ -4,29 +4,15 @@ defaults:
     rotation: 0.03
     balance: 0.02
 
-wood_3:
-  expected_ranges:
-    shoulder_rotation_px:
-      min: 22
-      ideal: 35
-      max: 55
-    right_wrist_travel_px:
-      min: 100
-      ideal: 170
-      max: 280
-
-wood_5:
-  expected_ranges:
-    shoulder_rotation_px:
-      min: 20
-      ideal: 32
-      max: 50
-    right_wrist_travel_px:
-      min: 90
-      ideal: 155
-      max: 260
+expected_ranges:
+  x_factor_deg:
+    min: 8
+    ideal: 22
+  shoulder_rotation_max_deg:
+    min: 10
+    ideal: 30
 
 recommendation_rules:
   - metric: balance
     below: 72
-    message: "Wood membutuhkan balance solid — hindari bobbing naik-turun saat swing."
+    message: "Wood membutuhkan balance solid — hindari sway lateral berlebihan saat swing."

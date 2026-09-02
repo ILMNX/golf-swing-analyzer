@@ -31,24 +31,24 @@ const METRIC_LABELS: Record<MetricKey, string> = {
 
 const BASE_DRILLS: Record<MetricKey, { focus: string; drill: string }> = {
 	tempo: {
-		focus: 'Ritme konsisten backswing → downswing',
-		drill: 'Hitung "1-2-3" di backswing dan "4" di impact. Hindari rush di transisi atas.'
+		focus: 'Rasio backswing : downswing ≈ 3 : 1',
+		drill: 'Hitung frame atau ritme: 3 hitungan naik, 1 hitungan turun. Hindari rush di transisi atas.'
 	},
 	posture: {
-		focus: 'Spine angle tetap dari address hingga follow-through',
-		drill: 'Bayangkan punggung menempel pada sumbu imajiner. Jangan berdiri tegak terlalu cepat pasca impact.'
+		focus: 'Spine angle retention address → impact',
+		drill: 'Pertahankan sudut spine (mid-hip ke mid-shoulder) konsisten. Hindari early extension atau berdiri tegak sebelum impact.'
 	},
 	rotation: {
-		focus: 'Coil bahu & hip yang lebih penuh',
-		drill: 'Putar bahu ke belakang sambil menjaga pinggul stabil. Rasakan stretch di core sebelum downswing.'
+		focus: 'X-factor: shoulder turn lebih besar dari hip turn',
+		drill: 'Coil bahu ke belakang sambil membatasi rotasi pinggul. Targetkan selisih 20–40° pada top of swing.'
 	},
 	balance: {
-		focus: 'Distribusi berat dan finish yang seimbang',
-		drill: 'Akhiri swing dengan berat 90% di kaki depan, tumit belakang terangkat, tanpa goyah.'
+		focus: 'Minimalkan lateral sway saat backswing',
+		drill: 'Jaga mid-hip stabil relatif ke trail ankle. Transfer berat tanpa slide berlebihan ke arah target.'
 	},
 	head_stability: {
-		focus: 'Kepala tetap di belakang bola hingga impact',
-		drill: 'Fokus mata pada titik impact. Hindari mengangkat kepala terlalu dini untuk melihat bola terbang.'
+		focus: 'Gerak kepala minimal relatif ke lebar bahu',
+		drill: 'Ukur stabilitas dari hidung/telinga. Gerak kepala <15% lebar bahu dari address ke impact.'
 	}
 };
 
