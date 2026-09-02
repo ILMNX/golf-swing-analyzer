@@ -39,3 +39,8 @@ temp_*
 *.swo
 .DS_Store
 Thumbs.db
+
+# Node / SvelteKit frontend
+frontend/node_modules/
+frontend/.svelte-kit/
+frontend/build/

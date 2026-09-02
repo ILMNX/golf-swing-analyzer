@@ -6,21 +6,43 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 )
 
 const (
-	serverPort   = ":3000"
-	mlEngineURL  = "http://127.0.0.1:8000/analyze-swing"
-	tempDir      = "."
-	tempPrefix   = "temp_swing_"
+	serverPort  = ":3000"
+	mlEngineURL = "http://127.0.0.1:8000/analyze-swing"
+	tempDir     = "."
+	tempPrefix  = "temp_swing_"
 )
 
-// SwingAnalysis mirrors the JSON shape returned by the ML engine.
+// SwingMetrics holds per-dimension scores from pose analysis.
+type SwingMetrics struct {
+	Tempo    int `json:"tempo"`
+	Posture  int `json:"posture"`
+	Rotation int `json:"rotation"`
+	Balance  int `json:"balance"`
+}
+
+// SwingAnalysis is the full response sent to the frontend.
 type SwingAnalysis struct {
+	Status         string       `json:"status"`
+	Score          int          `json:"score"`
+	Recommendation string       `json:"recommendation"`
+	Club           string       `json:"club"`
+	ShotType       string       `json:"shot_type"`
+	Metrics        SwingMetrics `json:"metrics"`
+	AnalyzedAt     string       `json:"analyzed_at"`
+	Filename       string       `json:"filename"`
+}
+
+// mlEngineResponse mirrors the JSON shape returned by the Python ML engine.
+type mlEngineResponse struct {
 	Status         string `json:"status"`
 	Score          int    `json:"score"`
 	Recommendation string `json:"recommendation"`
@@ -28,10 +50,14 @@ type SwingAnalysis struct {
 
 func main() {
 	app := fiber.New(fiber.Config{
-		BodyLimit: 100 * 1024 * 1024, // 100 MB — accommodate video uploads
+		BodyLimit: 100 * 1024 * 1024, // 100 MB
 	})
 
 	app.Use(logger.New())
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "http://localhost:5173,http://127.0.0.1:5173",
+		AllowHeaders: "Origin, Content-Type, Accept",
+	}))
 
 	app.Get("/health", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{"status": "ok"})
@@ -43,18 +69,16 @@ func main() {
 	log.Fatal(app.Listen(serverPort))
 }
 
-// handleUploadSwing accepts a video file, forwards it to the ML engine,
-// and returns the analysis result to the client.
 func handleUploadSwing(c *fiber.Ctx) error {
-	// -----------------------------------------------------------------------
-	// 1. Receive the uploaded file from multipart form-data
-	// -----------------------------------------------------------------------
 	fileHeader, err := c.FormFile("video")
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "missing 'video' field in form-data",
 		})
 	}
+
+	club := c.FormValue("club", "iron_7")
+	shotType := c.FormValue("shot_type", "full_swing")
 
 	src, err := fileHeader.Open()
 	if err != nil {
@@ -64,9 +88,6 @@ func handleUploadSwing(c *fiber.Ctx) error {
 	}
 	defer src.Close()
 
-	// -----------------------------------------------------------------------
-	// 2. Save to a temporary file on disk
-	// -----------------------------------------------------------------------
 	ext := filepath.Ext(fileHeader.Filename)
 	if ext == "" {
 		ext = ".mp4"
@@ -80,7 +101,6 @@ func handleUploadSwing(c *fiber.Ctx) error {
 	}
 	tmpPath := tmpFile.Name()
 
-	// Ensure the temp file is always removed, even on error paths
 	defer func() {
 		tmpFile.Close()
 		os.Remove(tmpPath)
@@ -92,22 +112,22 @@ func handleUploadSwing(c *fiber.Ctx) error {
 		})
 	}
 
-	// Close before forwarding so the ML engine can read the file cleanly
 	if err = tmpFile.Close(); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": fmt.Sprintf("failed to close temp file: %v", err),
 		})
 	}
 
-	// -----------------------------------------------------------------------
-	// 3. Forward the video to the Python ML engine via go-resty
-	// -----------------------------------------------------------------------
 	client := resty.New()
 
-	var result SwingAnalysis
+	var mlResult mlEngineResponse
 	resp, err := client.R().
 		SetFile("video", tmpPath).
-		SetResult(&result).
+		SetFormData(map[string]string{
+			"club":      club,
+			"shot_type": shotType,
+		}).
+		SetResult(&mlResult).
 		Post(mlEngineURL)
 
 	if err != nil {
@@ -122,8 +142,23 @@ func handleUploadSwing(c *fiber.Ctx) error {
 		})
 	}
 
-	// -----------------------------------------------------------------------
-	// 4. Return the ML engine's JSON response to the client
-	// -----------------------------------------------------------------------
+	// Enrich ML response with config + derived metrics for the report page.
+	// TODO: replace mock metrics with real values from ML engine once implemented.
+	result := SwingAnalysis{
+		Status:         mlResult.Status,
+		Score:          mlResult.Score,
+		Recommendation: mlResult.Recommendation,
+		Club:           club,
+		ShotType:       shotType,
+		Filename:       fileHeader.Filename,
+		AnalyzedAt:     time.Now().UTC().Format(time.RFC3339),
+		Metrics: SwingMetrics{
+			Tempo:    mlResult.Score - 3,
+			Posture:  mlResult.Score - 7,
+			Rotation: mlResult.Score + 5,
+			Balance:  mlResult.Score,
+		},
+	}
+
 	return c.JSON(result)
 }

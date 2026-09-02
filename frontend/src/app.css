@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+	body {
+		@apply min-h-screen;
+	}
+}
+
+@layer components {
+	.btn-primary {
+		@apply inline-flex items-center justify-center gap-2 rounded-xl bg-fairway-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-fairway-900/40 transition hover:bg-fairway-400 focus:outline-none focus:ring-2 focus:ring-fairway-400 focus:ring-offset-2 focus:ring-offset-fairway-950 disabled:cursor-not-allowed disabled:opacity-50;
+	}
+
+	.btn-secondary {
+		@apply inline-flex items-center justify-center gap-2 rounded-xl border border-fairway-700 bg-fairway-900/60 px-6 py-3 text-sm font-semibold text-fairway-100 transition hover:border-fairway-500 hover:bg-fairway-900 focus:outline-none focus:ring-2 focus:ring-fairway-600 focus:ring-offset-2 focus:ring-offset-fairway-950;
+	}
+
+	.card {
+		@apply rounded-2xl border border-fairway-800/80 bg-fairway-900/40 p-6 shadow-xl backdrop-blur-sm;
+	}
+
+	.input-field {
+		@apply w-full rounded-xl border border-fairway-700 bg-fairway-950/60 px-4 py-3 text-sm text-white placeholder-fairway-600 outline-none transition focus:border-fairway-500 focus:ring-2 focus:ring-fairway-500/30;
+	}
+
+	.label {
+		@apply mb-2 block text-sm font-medium text-fairway-200;
+	}
+}

@@ -7,7 +7,7 @@ import os
 import tempfile
 from pathlib import Path
 
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, Form, UploadFile, HTTPException
 from ultralytics import YOLO
 
 # ---------------------------------------------------------------------------
@@ -30,7 +30,11 @@ async def health_check():
 
 
 @app.post("/analyze-swing")
-async def analyze_swing(video: UploadFile = File(...)):
+async def analyze_swing(
+    video: UploadFile = File(...),
+    club: str = Form("iron_7"),
+    shot_type: str = Form("full_swing"),
+):
     """
     Accept a video upload, run pose estimation, and return swing analysis.
 
@@ -65,6 +69,7 @@ async def analyze_swing(video: UploadFile = File(...)):
         #   4. Derive score and recommendation from metrics
         # -------------------------------------------------------------------
         _ = model  # reference model so linters don't flag it as unused
+        _ = club, shot_type  # used once real ML logic is implemented
 
         return {
             "status": "success",
