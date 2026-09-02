@@ -133,29 +133,60 @@ def create_video_writer(path: str, width: int, height: int, fps: float) -> cv2.V
 def transcode_for_browser(path: str) -> str:
     """
     Re-encode OpenCV mpeg4 output to H.264/yuv420p for HTML5 <video> playback.
-    Falls back silently if ffmpeg is unavailable.
+    Raises if ffmpeg is missing or transcode fails.
     """
     temp_path = f"{path}.web.mp4"
     cmd = [
         "ffmpeg", "-y", "-loglevel", "error",
         "-i", path,
         "-c:v", "libx264",
+        "-profile:v", "baseline",
+        "-level", "3.1",
         "-preset", "fast",
         "-crf", "23",
         "-pix_fmt", "yuv420p",
         "-movflags", "+faststart",
+        "-an",
         temp_path,
     ]
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=False)
         if result.returncode != 0:
-            logger.warning("ffmpeg transcode failed: %s", result.stderr.strip())
-            return path
+            raise ValidationError(
+                f"Transcode video gagal: {result.stderr.strip() or 'ffmpeg error'}",
+                code="transcode_failed",
+            )
+        if not _is_browser_compatible_h264(temp_path):
+            raise ValidationError(
+                "Output video tidak kompatibel browser setelah transcode.",
+                code="transcode_failed",
+            )
         os.replace(temp_path, path)
         return path
     except FileNotFoundError:
-        logger.warning("ffmpeg not found — output may not play in browser")
-        return path
+        raise ValidationError(
+            "ffmpeg tidak ditemukan. Install ffmpeg agar video analisis dapat diputar di browser.",
+            code="ffmpeg_missing",
+        ) from None
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
+
+
+def _is_browser_compatible_h264(path: str) -> bool:
+    """Return True when the file contains H.264 video in a browser-friendly pixel format."""
+    probe = [
+        "ffprobe", "-v", "error",
+        "-select_streams", "v:0",
+        "-show_entries", "stream=codec_name,pix_fmt",
+        "-of", "csv=p=0",
+        path,
+    ]
+    try:
+        result = subprocess.run(probe, capture_output=True, text=True, check=False)
+        if result.returncode != 0:
+            return False
+        line = result.stdout.strip().lower()
+        return line.startswith("h264,") and "yuv420p" in line
+    except FileNotFoundError:
+        return False

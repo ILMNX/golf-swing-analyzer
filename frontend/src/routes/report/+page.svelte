@@ -8,10 +8,26 @@
 
 	let report = $state<SwingAnalysis | null>(null);
 	let videoError = $state(false);
+	let videoRetry = $state(0);
+
+	const videoUrl = $derived(
+		report?.annotated_video_url ? getAnnotatedVideoUrl(report.annotated_video_url) : null
+	);
 
 	onMount(() => {
 		report = loadReport();
 	});
+
+	$effect(() => {
+		if (videoUrl) {
+			videoError = false;
+		}
+	});
+
+	function retryVideo() {
+		videoError = false;
+		videoRetry += 1;
+	}
 
 	function formatDate(iso: string): string {
 		return new Date(iso).toLocaleString('id-ID', {
@@ -22,10 +38,6 @@
 			minute: '2-digit'
 		});
 	}
-
-	const videoUrl = $derived(
-		report?.annotated_video_url ? getAnnotatedVideoUrl(report.annotated_video_url) : null
-	);
 </script>
 
 <section class="container-page py-8 sm:py-10">
@@ -50,6 +62,10 @@
 				<span>{CLUB_LABELS[report.club] ?? report.club}</span>
 				<span class="text-border">|</span>
 				<span>{SHOT_LABELS[report.shot_type] ?? report.shot_type}</span>
+				{#if report.tuning?.profile_id}
+					<span class="text-border">|</span>
+					<span class="text-disabled" title="Tuning profile">Profile: {report.tuning.profile_id}</span>
+				{/if}
 				<span class="text-border">|</span>
 				<span class="truncate">{report.filename}</span>
 			</div>
@@ -108,20 +124,28 @@
 				<p class="label">Video Tracking Sendi</p>
 				<div class="overflow-hidden border border-border bg-obsidian">
 					{#if videoError}
-						<div class="flex min-h-48 items-center justify-center p-6 text-center text-sm text-muted">
-							Video tidak dapat diputar. Coba analisis ulang.
+						<div class="flex min-h-48 flex-col items-center justify-center gap-3 p-6 text-center text-sm text-muted">
+							<p>Video tidak dapat diputar. Pastikan layanan backend masih berjalan, lalu coba lagi.</p>
+							<div class="flex flex-wrap justify-center gap-2">
+								<button type="button" class="btn-secondary text-xs" onclick={retryVideo}>
+									Coba putar lagi
+								</button>
+								<a href={videoUrl} class="btn-secondary text-xs" target="_blank" rel="noopener">
+									Buka video langsung
+								</a>
+							</div>
 						</div>
 					{:else}
-						<video
-							src={videoUrl}
-							controls
-							playsinline
-							preload="metadata"
-							class="max-h-[32rem] w-full object-contain"
-							onerror={() => (videoError = true)}
-						>
-							<track kind="captions" />
-						</video>
+						{#key `${videoUrl}-${videoRetry}`}
+							<video
+								src={videoUrl}
+								controls
+								playsinline
+								preload="metadata"
+								class="max-h-[32rem] w-full object-contain"
+								onerror={() => (videoError = true)}
+							></video>
+						{/key}
 					{/if}
 				</div>
 				<p class="mt-2 text-xs text-muted">

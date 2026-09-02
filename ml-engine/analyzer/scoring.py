@@ -1,38 +1,29 @@
-"""Overall score and coaching recommendations."""
+"""Overall score and coaching recommendations — delegates to tuning applier."""
 
 from __future__ import annotations
 
+from typing import Any
 
-def compute_overall_score(summary: dict[str, int]) -> int:
-    weights = {
-        "tempo": 0.2,
-        "posture": 0.25,
-        "rotation": 0.25,
-        "balance": 0.2,
-        "head_stability": 0.1,
+from analyzer.tuning.applier import (
+    adjust_summary_for_ranges,
+    build_recommendation,
+    compute_overall_score,
+)
+from analyzer.tuning.schema import TuningProfile
+
+
+def score_swing(
+    metrics: dict[str, Any],
+    profile: TuningProfile,
+) -> dict[str, Any]:
+    """Apply tuning profile to raw metrics and return score + recommendation."""
+    raw_summary = metrics["summary"]
+    adjusted_summary = adjust_summary_for_ranges(raw_summary, metrics, profile)
+    score = compute_overall_score(adjusted_summary, profile)
+    recommendation = build_recommendation(adjusted_summary, profile)
+
+    return {
+        "score": score,
+        "recommendation": recommendation,
+        "summary": adjusted_summary,
     }
-    total = sum(summary.get(k, 0) * w for k, w in weights.items())
-    return int(round(max(0, min(100, total))))
-
-
-def build_recommendation(summary: dict[str, int], club: str, shot_type: str) -> str:
-    tips: list[str] = []
-
-    if summary.get("head_stability", 100) < 70:
-        tips.append("Kepala terlalu bergerak lateral — fokus menjaga head steady di atas bola.")
-    if summary.get("posture", 100) < 70:
-        tips.append("Bahu tidak level — perhatikan alignment bahu saat address.")
-    if summary.get("rotation", 100) < 70:
-        tips.append("Rotasi bahu/hip terbatas — tingkatkan turn pada backswing.")
-    if summary.get("balance", 100) < 70:
-        tips.append("Keseimbangan kaki tidak stabil — perlebar stance dan distribusikan berat merata.")
-    if summary.get("tempo", 100) < 70:
-        tips.append("Tempo swing tidak konsisten — latih ritme 3:1 backswing ke downswing.")
-
-    if not tips:
-        return (
-            f"Swing {shot_type.replace('_', ' ')} dengan {club.replace('_', ' ')} terlihat solid. "
-            "Pertahankan konsistensi dan fokus pada repeatability."
-        )
-
-    return " ".join(tips[:3])

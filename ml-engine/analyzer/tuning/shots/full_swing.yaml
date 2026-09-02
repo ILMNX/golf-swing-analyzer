@@ -1,0 +1,40 @@
+# Full swing — baseline untuk drive, iron, wood
+validation:
+  min_visible_keypoint_ratio: 0.55
+  min_person_height_ratio: 0.25
+  min_side_view_score: 0.40
+
+scoring_weights:
+  tempo: 0.20
+  posture: 0.20
+  rotation: 0.30
+  balance: 0.15
+  head_stability: 0.15
+
+metrics_focus:
+  - rotation
+  - tempo
+  - posture
+  - balance
+
+expected_ranges:
+  shoulder_rotation_px:
+    min: 15
+    ideal: 30
+    max: 50
+  hip_rotation_px:
+    min: 10
+    ideal: 22
+    max: 40
+  right_wrist_travel_px:
+    min: 80
+    ideal: 150
+    max: 250
+
+recommendation_rules:
+  - metric: rotation
+    below: 72
+    message: "Rotasi bahu/hip kurang untuk full swing — fokus pada coil di backswing."
+  - metric: tempo
+    below: 68
+    message: "Tempo full swing tidak smooth — hindari terburu-buru di transisi."

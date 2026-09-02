@@ -1,0 +1,19 @@
+# Putter — override club defaults when shot is not putt but club is putter (rare)
+defaults:
+  scoring_weights_delta:
+    rotation: -0.10
+    head_stability: 0.10
+    balance: 0.05
+
+expected_ranges:
+  shoulder_rotation_px:
+    max: 12
+  right_wrist_travel_px:
+    min: 8
+    ideal: 25
+    max: 50
+
+recommendation_rules:
+  - metric: head_stability
+    below: 80
+    message: "Putter: jaga kepala benar-benar diam selama stroke."

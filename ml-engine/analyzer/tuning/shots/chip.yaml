@@ -1,0 +1,35 @@
+# Chip — short game dekat green
+validation:
+  min_visible_keypoint_ratio: 0.50
+  min_person_height_ratio: 0.22
+  min_side_view_score: 0.35
+
+scoring_weights:
+  tempo: 0.15
+  posture: 0.25
+  rotation: 0.10
+  balance: 0.30
+  head_stability: 0.20
+
+metrics_focus:
+  - balance
+  - head_stability
+  - posture
+
+expected_ranges:
+  right_wrist_travel_px:
+    min: 20
+    ideal: 50
+    max: 90
+  shoulder_rotation_px:
+    min: 5
+    ideal: 12
+    max: 25
+
+recommendation_rules:
+  - metric: balance
+    below: 75
+    message: "Keseimbangan penting pada chip — distribusikan berat ke kaki depan."
+  - metric: head_stability
+    below: 72
+    message: "Kepala bergerak saat chip — pertahankan posisi relatif terhadap bola."

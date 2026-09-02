@@ -1,0 +1,5 @@
+# Optional combo overrides — uncomment or add as needed
+# Example: fine-tune full swing with 7 iron
+# extends: null
+# scoring_weights_delta:
+#   rotation: 0.02

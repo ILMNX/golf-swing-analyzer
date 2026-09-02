@@ -1,0 +1,28 @@
+# Wedges — short game precision
+defaults:
+  scoring_weights_delta:
+    balance: 0.05
+    head_stability: 0.03
+    rotation: -0.05
+
+expected_ranges:
+  shoulder_rotation_px:
+    min: 8
+    ideal: 16
+    max: 28
+  right_wrist_travel_px:
+    min: 40
+    ideal: 75
+    max: 120
+  hip_rotation_px:
+    min: 5
+    ideal: 12
+    max: 22
+
+recommendation_rules:
+  - metric: head_stability
+    below: 74
+    message: "Wedge shot membutuhkan kepala stabil — minimalkan lateral movement."
+  - metric: balance
+    below: 73
+    message: "Weight shift wedge tidak seimbang — kontrol transfer berat ke kaki depan."

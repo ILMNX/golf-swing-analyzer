@@ -1,0 +1,32 @@
+# Woods (3W, 5W)
+defaults:
+  scoring_weights_delta:
+    rotation: 0.03
+    balance: 0.02
+
+wood_3:
+  expected_ranges:
+    shoulder_rotation_px:
+      min: 22
+      ideal: 35
+      max: 55
+    right_wrist_travel_px:
+      min: 100
+      ideal: 170
+      max: 280
+
+wood_5:
+  expected_ranges:
+    shoulder_rotation_px:
+      min: 20
+      ideal: 32
+      max: 50
+    right_wrist_travel_px:
+      min: 90
+      ideal: 155
+      max: 260
+
+recommendation_rules:
+  - metric: balance
+    below: 72
+    message: "Wood membutuhkan balance solid — hindari bobbing naik-turun saat swing."

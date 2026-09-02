@@ -9,6 +9,7 @@ import numpy as np
 import config
 from analyzer.exceptions import ValidationError
 from analyzer.pose import PoseExtractor
+from analyzer.tuning.schema import ValidationTuning
 from analyzer.video_io import (
     VideoMeta,
     measure_sharpness,
@@ -27,10 +28,24 @@ class ValidationReport:
     poses_detected: int
 
 
-def validate_video(path: str, meta: VideoMeta, pose_extractor: PoseExtractor) -> ValidationReport:
+def validate_video(
+    path: str,
+    meta: VideoMeta,
+    pose_extractor: PoseExtractor,
+    tuning: ValidationTuning | None = None,
+) -> ValidationReport:
+    vt = tuning or ValidationTuning(
+        min_sharpness=config.MIN_SHARPNESS,
+        min_pose_confidence=config.MIN_POSE_CONFIDENCE,
+        min_visible_keypoint_ratio=config.MIN_VISIBLE_KEYPOINT_RATIO,
+        min_person_height_ratio=config.MIN_PERSON_HEIGHT_RATIO,
+        min_side_view_score=0.4,
+        validation_sample_frames=config.VALIDATION_SAMPLE_FRAMES,
+    )
+
     validate_video_meta(meta)
 
-    indices = sample_frame_indices(meta.frame_count, config.VALIDATION_SAMPLE_FRAMES)
+    indices = sample_frame_indices(meta.frame_count, vt.validation_sample_frames)
     frames = read_sample_frames(path, indices)
 
     if not frames:
@@ -38,7 +53,7 @@ def validate_video(path: str, meta: VideoMeta, pose_extractor: PoseExtractor) ->
 
     sharpness_values = [measure_sharpness(f) for f in frames]
     avg_sharpness = float(np.mean(sharpness_values))
-    if avg_sharpness < config.MIN_SHARPNESS:
+    if avg_sharpness < vt.min_sharpness:
         raise ValidationError(
             "Video terlalu buram. Pastikan fokus kamera tajam dan pencahayaan cukup.",
             code="video_blurry",
@@ -53,7 +68,7 @@ def validate_video(path: str, meta: VideoMeta, pose_extractor: PoseExtractor) ->
         if pose is None:
             continue
         poses_found += 1
-        visible_ratios.append(PoseExtractor.visible_ratio(pose))
+        visible_ratios.append(PoseExtractor.visible_ratio(pose, vt.min_pose_confidence))
         height_ratios.append(PoseExtractor.person_height_ratio(pose, meta.height))
 
     if poses_found == 0:
@@ -63,35 +78,30 @@ def validate_video(path: str, meta: VideoMeta, pose_extractor: PoseExtractor) ->
         )
 
     avg_visible = float(np.mean(visible_ratios))
-    if avg_visible < config.MIN_VISIBLE_KEYPOINT_RATIO:
+    if avg_visible < vt.min_visible_keypoint_ratio:
         raise ValidationError(
             "Terlalu banyak sendi tidak terlihat. Perbaiki sudut kamera — rekam dari samping dengan tubuh penuh.",
             code="poor_pose_visibility",
         )
 
     avg_height = float(np.mean(height_ratios))
-    if avg_height < config.MIN_PERSON_HEIGHT_RATIO:
+    if avg_height < vt.min_person_height_ratio:
         raise ValidationError(
-            "Golfer terlalu kecil dalam frame. Dekatkan kamera atau zoom agar tubuh memenuhi minimal 25% frame.",
+            "Golfer terlalu kecil dalam frame. Dekatkan kamera atau zoom agar tubuh memenuhi frame.",
             code="subject_too_small",
         )
 
-    # Side-view heuristic: shoulders and hips should both be reasonably visible
     side_scores = []
     for frame in frames:
         pose = pose_extractor.detect(frame)
         if pose is None:
             continue
         kp = pose.keypoints
-        left_shoulder = kp[5, 2]
-        right_shoulder = kp[6, 2]
-        left_hip = kp[11, 2]
-        right_hip = kp[12, 2]
         side_scores.append(
-            min(left_shoulder, right_shoulder, left_hip, right_hip) >= config.MIN_POSE_CONFIDENCE
+            min(kp[5, 2], kp[6, 2], kp[11, 2], kp[12, 2]) >= vt.min_pose_confidence
         )
 
-    if side_scores and float(np.mean(side_scores)) < 0.4:
+    if side_scores and float(np.mean(side_scores)) < vt.min_side_view_score:
         raise ValidationError(
             "Sudut kamera kurang ideal. Rekam dari samping (face-on atau down-the-line) dengan bahu dan pinggul terlihat.",
             code="bad_camera_angle",

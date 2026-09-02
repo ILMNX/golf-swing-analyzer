@@ -1,0 +1,35 @@
+# Pitch — pukulan menengah dengan trajektori tinggi
+validation:
+  min_visible_keypoint_ratio: 0.52
+  min_person_height_ratio: 0.23
+  min_side_view_score: 0.38
+
+scoring_weights:
+  tempo: 0.18
+  posture: 0.22
+  rotation: 0.18
+  balance: 0.25
+  head_stability: 0.17
+
+metrics_focus:
+  - tempo
+  - balance
+  - rotation
+
+expected_ranges:
+  right_wrist_travel_px:
+    min: 40
+    ideal: 90
+    max: 140
+  shoulder_rotation_px:
+    min: 8
+    ideal: 18
+    max: 35
+
+recommendation_rules:
+  - metric: tempo
+    below: 70
+    message: "Tempo pitch harus terkontrol — hindari deceleration mendadak."
+  - metric: balance
+    below: 72
+    message: "Finish pitch tidak seimbang — tahan pose hingga bola mendarat."

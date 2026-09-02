@@ -1,0 +1,40 @@
+# Putt — minimal rotasi, fokus stabilitas
+validation:
+  min_visible_keypoint_ratio: 0.45
+  min_person_height_ratio: 0.18
+  min_side_view_score: 0.25
+
+scoring_weights:
+  tempo: 0.10
+  posture: 0.20
+  rotation: 0.05
+  balance: 0.35
+  head_stability: 0.30
+
+metrics_focus:
+  - head_stability
+  - balance
+  - posture
+
+expected_ranges:
+  right_wrist_travel_px:
+    min: 10
+    ideal: 30
+    max: 60
+  shoulder_rotation_px:
+    min: 2
+    ideal: 6
+    max: 15
+  lateral_head_movement_px:
+    max: 25
+
+recommendation_rules:
+  - metric: head_stability
+    below: 78
+    message: "Kepala bergerak saat putt — pertahankan mata di atas bola hingga impact."
+  - metric: balance
+    below: 75
+    message: "Stance putt tidak stabil — kaki selebar bahu, berat merata."
+  - metric: tempo
+    below: 65
+    message: "Tempo putt tidak konsisten — latih pendulum motion dengan ritme sama."

@@ -1,0 +1,40 @@
+version: "1.0"
+
+validation:
+  min_sharpness: 50.0
+  min_pose_confidence: 0.35
+  min_visible_keypoint_ratio: 0.55
+  min_person_height_ratio: 0.25
+  min_side_view_score: 0.40
+  validation_sample_frames: 12
+
+scoring_weights:
+  tempo: 0.20
+  posture: 0.25
+  rotation: 0.25
+  balance: 0.20
+  head_stability: 0.10
+
+metrics_focus:
+  - tempo
+  - posture
+  - rotation
+  - balance
+  - head_stability
+
+recommendation_rules:
+  - metric: head_stability
+    below: 70
+    message: "Kepala terlalu bergerak — fokus menjaga head steady di atas bola."
+  - metric: posture
+    below: 70
+    message: "Postur bahu tidak stabil — perhatikan alignment saat address."
+  - metric: rotation
+    below: 70
+    message: "Rotasi bahu/hip terbatas — tingkatkan turn pada backswing."
+  - metric: balance
+    below: 70
+    message: "Keseimbangan kaki kurang stabil — perlebar stance dan distribusikan berat merata."
+  - metric: tempo
+    below: 70
+    message: "Tempo swing tidak konsisten — latih ritme 3:1 backswing ke downswing."

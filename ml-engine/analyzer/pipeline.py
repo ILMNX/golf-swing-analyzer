@@ -15,7 +15,9 @@ from analyzer.exceptions import ProcessingError, ValidationError
 from analyzer.metrics.compute import compute_all_metrics
 from analyzer.overlay import render_annotated_video
 from analyzer.pose import FramePose, PoseExtractor
-from analyzer.scoring import build_recommendation, compute_overall_score
+from analyzer.scoring import score_swing
+from analyzer.tuning.loader import resolve_profile
+from analyzer.tuning.schema import TuningProfile
 from analyzer.validator import validate_video
 from analyzer.video_io import iter_frames, read_video_meta
 
@@ -57,6 +59,7 @@ class AnalysisResult:
     recommendation: str
     metrics: dict[str, Any]
     validation: dict[str, Any]
+    tuning: dict[str, Any]
     stages: list[StageResult] = field(default_factory=list)
     annotated_video_url: str = ""
     analysis_id: str = ""
@@ -77,6 +80,7 @@ class SwingAnalysisPipeline:
         shot_type: str = "full_swing",
         on_stage: StageCallback | None = None,
     ) -> AnalysisResult:
+        profile = resolve_profile(shot_type=shot_type, club=club)
         analysis_id = uuid.uuid4().hex[:12]
         stages: list[StageResult] = []
 
@@ -112,7 +116,7 @@ class SwingAnalysisPipeline:
 
         validation = run_stage(
             StageId.QUALITY_CHECK,
-            lambda: validate_video(video_path, meta, self._pose),
+            lambda: validate_video(video_path, meta, self._pose, profile.validation),
         )
 
         poses: list[FramePose | None] = run_stage(
@@ -129,7 +133,7 @@ class SwingAnalysisPipeline:
 
         metrics = run_stage(
             StageId.COMPUTE_METRICS,
-            lambda: compute_all_metrics(valid_poses),
+            lambda: compute_all_metrics(valid_poses, profile),
         )
 
         output_filename = f"{analysis_id}.mp4"
@@ -142,13 +146,17 @@ class SwingAnalysisPipeline:
             ),
         )
 
-        score_data = run_stage(StageId.SCORE, lambda: self._score(metrics, club, shot_type))
+        score_data = run_stage(StageId.SCORE, lambda: score_swing(metrics, profile))
+
+        # Replace summary with tuning-adjusted values used for scoring
+        metrics["summary"] = score_data["summary"]
 
         return AnalysisResult(
             status="success",
             score=score_data["score"],
             recommendation=score_data["recommendation"],
             metrics=metrics,
+            tuning=profile.to_dict(),
             validation={
                 "sharpness": validation.sharpness,
                 "visible_keypoint_ratio": validation.visible_keypoint_ratio,
@@ -175,13 +183,6 @@ class SwingAnalysisPipeline:
         return poses
 
     @staticmethod
-    def _score(metrics: dict, club: str, shot_type: str) -> dict:
-        summary = metrics["summary"]
-        score = compute_overall_score(summary)
-        recommendation = build_recommendation(summary, club, shot_type)
-        return {"score": score, "recommendation": recommendation}
-
-    @staticmethod
     def to_dict(result: AnalysisResult) -> dict[str, Any]:
         return {
             "status": result.status,
@@ -189,6 +190,7 @@ class SwingAnalysisPipeline:
             "recommendation": result.recommendation,
             "metrics": result.metrics,
             "validation": result.validation,
+            "tuning": result.tuning,
             "stages": [
                 {
                     "id": s.id,

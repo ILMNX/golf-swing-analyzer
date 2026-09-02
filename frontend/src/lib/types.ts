@@ -26,6 +26,15 @@ export interface SwingMetricsSummary {
 	head_stability: number;
 }
 
+export interface TuningInfo {
+	version: string;
+	shot_type: string;
+	club: string;
+	club_category: string;
+	profile_id: string;
+	metrics_focus: string[];
+}
+
 export interface SwingMetrics {
 	summary: SwingMetricsSummary;
 	head: {
@@ -57,6 +66,7 @@ export interface SwingMetrics {
 	joint_distances: Record<string, StatValue>;
 	joint_angles: Record<string, StatValue>;
 	frames_analyzed: number;
+	metrics_focus?: string[];
 }
 
 export interface AnalysisStage {
@@ -90,6 +100,7 @@ export interface SwingAnalysis {
 	shot_type: ShotType | string;
 	metrics: SwingMetrics;
 	validation?: ValidationInfo;
+	tuning?: TuningInfo;
 	stages?: AnalysisStage[];
 	annotated_video_url?: string;
 	analysis_id?: string;

@@ -10,6 +10,7 @@ import numpy as np
 import config
 from analyzer.keypoints import ANGLE_TRIPLETS, DISTANCE_PAIRS, KeypointIndex
 from analyzer.pose import FramePose, PoseExtractor
+from analyzer.tuning.schema import TuningProfile
 
 
 def _valid_point(kp: np.ndarray, idx: int) -> bool:
@@ -213,7 +214,10 @@ def compute_summary_scores(
     }
 
 
-def compute_all_metrics(poses: list[FramePose]) -> dict[str, Any]:
+def compute_all_metrics(
+    poses: list[FramePose],
+    profile: TuningProfile | None = None,
+) -> dict[str, Any]:
     valid_poses = [p for p in poses if PoseExtractor.visible_ratio(p) > 0.3]
     if not valid_poses:
         valid_poses = poses
@@ -237,4 +241,5 @@ def compute_all_metrics(poses: list[FramePose]) -> dict[str, Any]:
         "joint_distances": distances,
         "joint_angles": angles,
         "frames_analyzed": len(valid_poses),
+        "metrics_focus": list(profile.metrics_focus) if profile else [],
     }
