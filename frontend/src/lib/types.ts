@@ -164,6 +164,8 @@ export interface SwingAnalysis {
 	trim?: TrimInfo;
 	stages?: AnalysisStage[];
 	annotated_video_url?: string;
+	annotated_video_slow_url?: string;
+	slowmo_factor?: number;
 	analysis_id?: string;
 	analyzed_at: string;
 	filename: string;

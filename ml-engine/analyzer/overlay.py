@@ -52,10 +52,17 @@ def render_annotated_video(
     meta_fps: float,
     start_frame: int = 0,
     end_frame: int | None = None,
+    slow_output_path: str | None = None,
+    slowmo_factor: int = 1,
 ) -> None:
     from analyzer.video_io import create_video_writer, iter_frames, transcode_for_browser
 
     writer = create_video_writer(output_path, meta_width, meta_height, meta_fps)
+    slow_writer = None
+    repeats = max(1, slowmo_factor)
+    if slow_output_path and repeats > 1:
+        slow_writer = create_video_writer(slow_output_path, meta_width, meta_height, meta_fps)
+
     trails: dict[int, deque] = {idx: deque(maxlen=20) for idx in TRAIL_JOINTS}
 
     try:
@@ -64,7 +71,14 @@ def render_annotated_video(
             if pose is not None:
                 frame = draw_pose(frame, pose, trails)
             writer.write(frame)
+            if slow_writer is not None:
+                for _ in range(repeats):
+                    slow_writer.write(frame)
     finally:
         writer.release()
+        if slow_writer is not None:
+            slow_writer.release()
 
     transcode_for_browser(output_path)
+    if slow_output_path and repeats > 1:
+        transcode_for_browser(slow_output_path)

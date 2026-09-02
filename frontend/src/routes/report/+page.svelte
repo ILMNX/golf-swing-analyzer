@@ -10,10 +10,18 @@
 	let report = $state<SwingAnalysis | null>(null);
 	let videoError = $state(false);
 	let videoRetry = $state(0);
+	let videoMode = $state<'normal' | 'slow'>('normal');
 
-	const videoUrl = $derived(
-		report?.annotated_video_url ? getAnnotatedVideoUrl(report.annotated_video_url) : null
-	);
+	const videoUrl = $derived.by(() => {
+		if (!report) return null;
+		const path =
+			videoMode === 'slow' && report.annotated_video_slow_url
+				? report.annotated_video_slow_url
+				: report.annotated_video_url;
+		return path ? getAnnotatedVideoUrl(path) : null;
+	});
+
+	const slowmoFactor = $derived(report?.slowmo_factor ?? 4);
 
 	onMount(() => {
 		report = loadReport();
@@ -26,6 +34,13 @@
 	});
 
 	function retryVideo() {
+		videoError = false;
+		videoRetry += 1;
+	}
+
+	function setVideoMode(mode: 'normal' | 'slow') {
+		if (mode === videoMode) return;
+		videoMode = mode;
 		videoError = false;
 		videoRetry += 1;
 	}
@@ -152,7 +167,27 @@
 		<!-- Annotated video -->
 		{#if videoUrl}
 			<div class="card mb-5 w-full min-w-0 sm:mb-6">
-				<p class="label">Video Tracking Sendi</p>
+				<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+					<p class="label">Video Tracking Sendi</p>
+					{#if report?.annotated_video_slow_url}
+						<div class="flex gap-2">
+							<button
+								type="button"
+								class="text-xs {videoMode === 'normal' ? 'btn-primary' : 'btn-secondary'}"
+								onclick={() => setVideoMode('normal')}
+							>
+								Normal
+							</button>
+							<button
+								type="button"
+								class="text-xs {videoMode === 'slow' ? 'btn-primary' : 'btn-secondary'}"
+								onclick={() => setVideoMode('slow')}
+							>
+								Slow Motion ({slowmoFactor}x)
+							</button>
+						</div>
+					{/if}
+				</div>
 				<div class="overflow-hidden border border-border bg-obsidian">
 					{#if videoError}
 						<div class="flex min-h-48 flex-col items-center justify-center gap-3 p-6 text-center text-sm text-muted">
@@ -181,6 +216,9 @@
 				</div>
 				<p class="mt-2 text-xs text-muted">
 					Hijau = skeleton &middot; titik terang = sendi &middot; garis putih = jejak gerakan
+					{#if videoMode === 'slow'}
+						&middot; slow motion {slowmoFactor}x @ {report?.validation?.video.fps.toFixed(0) ?? '—'} fps
+					{/if}
 				</p>
 			</div>
 		{/if}

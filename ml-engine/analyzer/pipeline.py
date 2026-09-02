@@ -64,6 +64,8 @@ class AnalysisResult:
     trim: dict[str, Any]
     stages: list[StageResult] = field(default_factory=list)
     annotated_video_url: str = ""
+    annotated_video_slow_url: str = ""
+    slowmo_factor: int = 1
     analysis_id: str = ""
 
 
@@ -156,6 +158,8 @@ class SwingAnalysisPipeline:
 
         output_filename = f"{analysis_id}.mp4"
         output_path = str(config.OUTPUT_DIR / output_filename)
+        slow_filename = f"{analysis_id}_slow.mp4"
+        slow_path = str(config.OUTPUT_DIR / slow_filename)
 
         run_stage(
             StageId.RENDER_VIDEO,
@@ -168,6 +172,8 @@ class SwingAnalysisPipeline:
                 meta.fps,
                 start_frame=trim.source_start_frame,
                 end_frame=trim.source_end_frame,
+                slow_output_path=slow_path,
+                slowmo_factor=config.SLOWMO_REPEAT_FACTOR,
             ),
         )
 
@@ -203,6 +209,8 @@ class SwingAnalysisPipeline:
             },
             stages=stages,
             annotated_video_url=f"/outputs/{output_filename}",
+            annotated_video_slow_url=f"/outputs/{slow_filename}",
+            slowmo_factor=config.SLOWMO_REPEAT_FACTOR,
             analysis_id=analysis_id,
         )
 
@@ -238,5 +246,7 @@ class SwingAnalysisPipeline:
                 for s in result.stages
             ],
             "annotated_video_url": result.annotated_video_url,
+            "annotated_video_slow_url": result.annotated_video_slow_url,
+            "slowmo_factor": result.slowmo_factor,
             "analysis_id": result.analysis_id,
         }

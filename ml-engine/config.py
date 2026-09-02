@@ -35,3 +35,6 @@ COLOR_JOINT = (161, 227, 166)        # #A6E3A1
 COLOR_TRAIL = (200, 200, 232)        # subtle off-white trail
 SKELETON_THICKNESS = 2
 JOINT_RADIUS = 4
+
+# Annotated output: repeat each frame N times at the same fps (smooth slow motion).
+SLOWMO_REPEAT_FACTOR = 4
