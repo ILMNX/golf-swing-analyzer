@@ -13,7 +13,15 @@
 	<footer class="w-full border-t border-border py-5">
 		<div class="container-page">
 			<p class="text-xs uppercase tracking-wide text-disabled sm:tracking-widest">
-				SwingLab &mdash; Golf Swing Analyzer
+				SwingLab &mdash;
+				<a
+					href="https://www.linkedin.com/in/gilbertsibuea"
+					target="_blank"
+					rel="noopener noreferrer"
+					class="transition hover:text-muted"
+				>
+					Gilbert Sibuea
+				</a>
 			</p>
 		</div>
 	</footer>
