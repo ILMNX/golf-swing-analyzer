@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import DetailedMetrics from '$lib/components/DetailedMetrics.svelte';
+	import NextSwingFocus from '$lib/components/NextSwingFocus.svelte';
 	import SpiderChart from '$lib/components/SpiderChart.svelte';
 	import { getAnnotatedVideoUrl, loadReport } from '$lib/api';
 	import type { SwingAnalysis } from '$lib/types';
@@ -118,6 +119,9 @@
 			{/if}
 		</div>
 
+		<!-- Next swing focus -->
+		<NextSwingFocus {report} />
+
 		<!-- Annotated video -->
 		{#if videoUrl}
 			<div class="card mb-5 w-full min-w-0 sm:mb-6">
@@ -161,7 +165,13 @@
 		</div>
 
 		<div class="mt-6 flex w-full flex-col gap-3 sm:mt-8 sm:flex-row">
-			<a href="/analyze" class="btn-primary w-full sm:w-auto">Analisis Lain</a>
+			<a
+				href="/analyze?club={report.club}&shot_type={report.shot_type}"
+				class="btn-primary w-full sm:w-auto"
+			>
+				Pukulan Berikutnya ({CLUB_LABELS[report.club] ?? report.club})
+			</a>
+			<a href="/analyze" class="btn-secondary w-full sm:w-auto">Analisis Lain</a>
 			<a href="/" class="btn-secondary w-full sm:w-auto">Beranda</a>
 		</div>
 	{/if}

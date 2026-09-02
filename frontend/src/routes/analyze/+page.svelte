@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { onDestroy } from 'svelte';
+	import { page } from '$app/state';
+	import { onDestroy, onMount } from 'svelte';
 	import { Info, Loader2, Upload } from 'lucide';
 	import AnalysisProgress from '$lib/components/AnalysisProgress.svelte';
 	import ClubSelector from '$lib/components/ClubSelector.svelte';
@@ -22,6 +23,18 @@
 	let stageTimer: ReturnType<typeof setInterval> | null = null;
 
 	const maxSizeMB = 100;
+
+	const VALID_CLUBS = new Set([
+		'driver', 'wood_3', 'wood_5', 'iron_3', 'iron_5', 'iron_7', 'iron_9', 'wedge', 'putter'
+	]);
+	const VALID_SHOTS = new Set(['full_swing', 'chip', 'pitch', 'putt']);
+
+	onMount(() => {
+		const clubParam = page.url.searchParams.get('club');
+		const shotParam = page.url.searchParams.get('shot_type');
+		if (clubParam && VALID_CLUBS.has(clubParam)) club = clubParam as ClubType;
+		if (shotParam && VALID_SHOTS.has(shotParam)) shotType = shotParam as ShotType;
+	});
 
 	function startStageTimer() {
 		stageIndex = 0;
@@ -218,13 +231,8 @@
 </section>
 
 {#if loading}
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-obsidian/90 p-4">
-		<div class="w-full max-w-md">
-			<AnalysisProgress activeIndex={stageIndex} />
-			<p class="mt-4 text-center text-xs text-muted">
-				Analisis membutuhkan waktu 30–90 detik tergantung durasi video.
-			</p>
-		</div>
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-obsidian/95 p-4 backdrop-blur-sm">
+		<AnalysisProgress activeIndex={stageIndex} {club} {shotType} />
 	</div>
 {/if}
 
