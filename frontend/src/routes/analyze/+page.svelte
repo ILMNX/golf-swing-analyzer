@@ -231,7 +231,7 @@
 </section>
 
 {#if loading}
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-obsidian/95 p-4 backdrop-blur-sm">
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-obsidian/90 p-4">
 		<AnalysisProgress activeIndex={stageIndex} {club} {shotType} />
 	</div>
 {/if}

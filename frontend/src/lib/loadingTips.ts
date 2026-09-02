@@ -17,7 +17,7 @@ export const LOADING_TIPS: LoadingTip[] = [
 	{ text: 'Latihan mirror 5 menit sebelum rekam bisa meningkatkan postur.', category: 'technique' },
 	{ text: 'Hindari backlight — wajah & tubuh harus lebih terang dari background.', category: 'recording' },
 	{ text: 'Konsistensi lebih penting dari jarak. Ulangi swing yang sama.', category: 'general' },
-	{ text: 'AI sedang memetakan 17 titik sendi tubuh kamu...', category: 'fun' },
+	{ text: 'Sistem memetakan 17 titik sendi untuk menghitung metrik swing.', category: 'general' },
 	{ text: 'Setiap swing adalah data. Analisis ini bantu kamu iterasi lebih cepat.', category: 'general' }
 ];
 
@@ -27,7 +27,7 @@ export function getPersonalizedTips(club: ClubType, shotType: ShotType): Loading
 
 	const personalized: LoadingTip[] = [
 		{
-			text: `Menganalisis ${shotLabel} dengan ${clubLabel} — tuning disesuaikan untuk kombinasi ini.`,
+			text: `${shotLabel} · ${clubLabel} — profil analisis disesuaikan untuk kombinasi ini.`,
 			category: 'general'
 		}
 	];
