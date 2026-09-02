@@ -13,30 +13,26 @@
 		{
 			title: 'Posisi Kamera',
 			text: 'Setinggi pinggang, tegak lurus, jarak 2–3 meter. Rekam dari samping — face-on atau down-the-line.',
-			image:
-				'https://images.unsplash.com/photo-1587174485971-f9d371c0f2b9?auto=format&fit=crop&w=800&q=80',
-			alt: 'Golfer melakukan swing dari sudut samping'
+			image: '/guide/posisi-kamera.jpeg',
+			alt: 'Ilustrasi posisi kamera setinggi pinggang untuk merekam swing golf'
 		},
 		{
 			title: 'Pencahayaan',
 			text: 'Area swing harus cukup terang. Hindari backlight agar tubuh dan club terlihat jelas.',
-			image:
-				'https://images.unsplash.com/photo-1535131749006-b7f58c99034a?auto=format&fit=crop&w=800&q=80',
-			alt: 'Lapangan golf dengan pencahayaan alami yang baik'
+			image: '/guide/pencahayaan.jpeg',
+			alt: 'Ilustrasi pencahayaan yang benar dan salah saat merekam swing'
 		},
 		{
 			title: 'Durasi Video',
 			text: '3–8 detik mencakup address, backswing, impact, dan follow-through. Format MP4/MOV.',
-			image:
-				'https://images.unsplash.com/photo-1593111774240-d529f12feeb9?auto=format&fit=crop&w=800&q=80',
-			alt: 'Golfer di fase backswing'
+			image: '/guide/durasi-video.jpeg',
+			alt: 'Ilustrasi timeline fase swing dari address hingga follow-through'
 		},
 		{
 			title: 'Pakaian & Background',
 			text: 'Pakaian kontras dengan background. Hindari orang bergerak di belakang.',
-			image:
-				'https://images.unsplash.com/photo-1592919505780-303950717480?auto=format&fit=crop&w=800&q=80',
-			alt: 'Golfer dengan pakaian kontras di driving range'
+			image: '/guide/pakaian-dan-background.jpeg',
+			alt: 'Ilustrasi pakaian kontras dan background bersih untuk analisis swing'
 		}
 	];
 
