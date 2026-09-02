@@ -31,6 +31,10 @@ temp_*
 *.avi
 *.mov
 *.mkv
+!ml-engine/video/**
+
+# ML engine output (annotated videos)
+ml-engine/output/
 
 # IDE and OS
 .idea/

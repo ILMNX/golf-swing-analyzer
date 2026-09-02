@@ -1,0 +1,204 @@
+"""Analysis pipeline orchestration."""
+
+from __future__ import annotations
+
+import time
+import uuid
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Callable
+
+from ultralytics import YOLO
+
+import config
+from analyzer.exceptions import ProcessingError, ValidationError
+from analyzer.metrics.compute import compute_all_metrics
+from analyzer.overlay import render_annotated_video
+from analyzer.pose import FramePose, PoseExtractor
+from analyzer.scoring import build_recommendation, compute_overall_score
+from analyzer.validator import validate_video
+from analyzer.video_io import iter_frames, read_video_meta
+
+
+class StageId(str, Enum):
+    VALIDATE = "validate"
+    DETECT_POSE = "detect_pose"
+    QUALITY_CHECK = "quality_check"
+    EXTRACT_POSE = "extract_pose"
+    COMPUTE_METRICS = "compute_metrics"
+    RENDER_VIDEO = "render_video"
+    SCORE = "score"
+
+
+STAGE_LABELS: dict[StageId, str] = {
+    StageId.VALIDATE: "Memvalidasi video",
+    StageId.DETECT_POSE: "Mendeteksi pose awal",
+    StageId.QUALITY_CHECK: "Memeriksa kualitas & sudut kamera",
+    StageId.EXTRACT_POSE: "Mengekstrak pose per frame",
+    StageId.COMPUTE_METRICS: "Menghitung metrik sendi",
+    StageId.RENDER_VIDEO: "Membuat video analisis",
+    StageId.SCORE: "Menghitung skor & rekomendasi",
+}
+
+
+@dataclass
+class StageResult:
+    id: str
+    label: str
+    status: str  # completed | failed
+    duration_ms: int
+    message: str = ""
+
+
+@dataclass
+class AnalysisResult:
+    status: str
+    score: int
+    recommendation: str
+    metrics: dict[str, Any]
+    validation: dict[str, Any]
+    stages: list[StageResult] = field(default_factory=list)
+    annotated_video_url: str = ""
+    analysis_id: str = ""
+
+
+StageCallback = Callable[[StageId, str], None]
+
+
+class SwingAnalysisPipeline:
+    def __init__(self, model: YOLO):
+        self._pose = PoseExtractor(model)
+        config.OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    def run(
+        self,
+        video_path: str,
+        club: str = "iron_7",
+        shot_type: str = "full_swing",
+        on_stage: StageCallback | None = None,
+    ) -> AnalysisResult:
+        analysis_id = uuid.uuid4().hex[:12]
+        stages: list[StageResult] = []
+
+        def run_stage(stage_id: StageId, fn) -> Any:
+            label = STAGE_LABELS[stage_id]
+            if on_stage:
+                on_stage(stage_id, label)
+            start = time.perf_counter()
+            try:
+                result = fn()
+                duration = int((time.perf_counter() - start) * 1000)
+                stages.append(StageResult(
+                    id=stage_id.value,
+                    label=label,
+                    status="completed",
+                    duration_ms=duration,
+                ))
+                return result
+            except ValidationError:
+                raise
+            except Exception as exc:
+                duration = int((time.perf_counter() - start) * 1000)
+                stages.append(StageResult(
+                    id=stage_id.value,
+                    label=label,
+                    status="failed",
+                    duration_ms=duration,
+                    message=str(exc),
+                ))
+                raise ProcessingError(f"Gagal pada tahap {label}: {exc}") from exc
+
+        meta = run_stage(StageId.VALIDATE, lambda: read_video_meta(video_path))
+
+        validation = run_stage(
+            StageId.QUALITY_CHECK,
+            lambda: validate_video(video_path, meta, self._pose),
+        )
+
+        poses: list[FramePose | None] = run_stage(
+            StageId.EXTRACT_POSE,
+            lambda: self._extract_all_poses(video_path),
+        )
+
+        valid_poses = [p for p in poses if p is not None]
+        if len(valid_poses) < config.MIN_FRAME_COUNT // 2:
+            raise ValidationError(
+                "Pose tidak cukup terdeteksi sepanjang video. Coba rekam ulang dengan pencahayaan lebih baik.",
+                code="insufficient_pose_data",
+            )
+
+        metrics = run_stage(
+            StageId.COMPUTE_METRICS,
+            lambda: compute_all_metrics(valid_poses),
+        )
+
+        output_filename = f"{analysis_id}.mp4"
+        output_path = str(config.OUTPUT_DIR / output_filename)
+
+        run_stage(
+            StageId.RENDER_VIDEO,
+            lambda: render_annotated_video(
+                video_path, output_path, poses, meta.width, meta.height, meta.fps
+            ),
+        )
+
+        score_data = run_stage(StageId.SCORE, lambda: self._score(metrics, club, shot_type))
+
+        return AnalysisResult(
+            status="success",
+            score=score_data["score"],
+            recommendation=score_data["recommendation"],
+            metrics=metrics,
+            validation={
+                "sharpness": validation.sharpness,
+                "visible_keypoint_ratio": validation.visible_keypoint_ratio,
+                "person_height_ratio": validation.person_height_ratio,
+                "sampled_frames": validation.sampled_frames,
+                "poses_detected": validation.poses_detected,
+                "video": {
+                    "width": meta.width,
+                    "height": meta.height,
+                    "fps": meta.fps,
+                    "duration_sec": round(meta.duration_sec, 2),
+                    "frame_count": meta.frame_count,
+                },
+            },
+            stages=stages,
+            annotated_video_url=f"/outputs/{output_filename}",
+            analysis_id=analysis_id,
+        )
+
+    def _extract_all_poses(self, video_path: str) -> list[FramePose | None]:
+        poses: list[FramePose | None] = []
+        for i, frame in enumerate(iter_frames(video_path)):
+            poses.append(self._pose.detect(frame, i))
+        return poses
+
+    @staticmethod
+    def _score(metrics: dict, club: str, shot_type: str) -> dict:
+        summary = metrics["summary"]
+        score = compute_overall_score(summary)
+        recommendation = build_recommendation(summary, club, shot_type)
+        return {"score": score, "recommendation": recommendation}
+
+    @staticmethod
+    def to_dict(result: AnalysisResult) -> dict[str, Any]:
+        return {
+            "status": result.status,
+            "score": result.score,
+            "recommendation": result.recommendation,
+            "metrics": result.metrics,
+            "validation": result.validation,
+            "stages": [
+                {
+                    "id": s.id,
+                    "label": s.label,
+                    "status": s.status,
+                    "duration_ms": s.duration_ms,
+                    "message": s.message,
+                }
+                for s in result.stages
+            ],
+            "annotated_video_url": result.annotated_video_url,
+            "analysis_id": result.analysis_id,
+        }

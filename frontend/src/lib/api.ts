@@ -20,7 +20,8 @@ export async function uploadSwing(
 	const data = await response.json();
 
 	if (!response.ok) {
-		throw new Error(data.error ?? 'Gagal menganalisis swing');
+		const message = data.error ?? 'Gagal menganalisis swing';
+		throw new Error(message);
 	}
 
 	return data as SwingAnalysis;
@@ -44,4 +45,10 @@ export function loadReport(): SwingAnalysis | null {
 
 export function clearReport(): void {
 	sessionStorage.removeItem(REPORT_STORAGE_KEY);
+}
+
+export function getAnnotatedVideoUrl(url?: string): string | null {
+	if (!url) return null;
+	if (url.startsWith('http')) return url;
+	return url;
 }

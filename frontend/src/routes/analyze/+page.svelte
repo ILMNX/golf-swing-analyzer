@@ -1,12 +1,14 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { onDestroy } from 'svelte';
 	import { Info, Loader2, Upload } from 'lucide';
+	import AnalysisProgress from '$lib/components/AnalysisProgress.svelte';
 	import ClubSelector from '$lib/components/ClubSelector.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import TutorialModal from '$lib/components/TutorialModal.svelte';
 	import { uploadSwing, saveReport } from '$lib/api';
 	import type { ClubType, ShotType } from '$lib/types';
-	import { SHOT_OPTIONS } from '$lib/types';
+	import { ANALYSIS_STAGES, SHOT_OPTIONS } from '$lib/types';
 
 	let club = $state<ClubType>('iron_7');
 	let shotType = $state<ShotType>('full_swing');
@@ -16,8 +18,26 @@
 	let loading = $state(false);
 	let error = $state<string | null>(null);
 	let dragOver = $state(false);
+	let stageIndex = $state(0);
+	let stageTimer: ReturnType<typeof setInterval> | null = null;
 
 	const maxSizeMB = 100;
+
+	function startStageTimer() {
+		stageIndex = 0;
+		stageTimer = setInterval(() => {
+			stageIndex = Math.min(stageIndex + 1, ANALYSIS_STAGES.length - 1);
+		}, 4000);
+	}
+
+	function stopStageTimer() {
+		if (stageTimer) {
+			clearInterval(stageTimer);
+			stageTimer = null;
+		}
+	}
+
+	onDestroy(stopStageTimer);
 
 	function handleFileSelect(file: File | undefined) {
 		error = null;
@@ -63,6 +83,7 @@
 
 		loading = true;
 		error = null;
+		startStageTimer();
 
 		try {
 			const result = await uploadSwing(videoFile, club, shotType);
@@ -71,6 +92,7 @@
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Terjadi kesalahan';
 		} finally {
+			stopStageTimer();
 			loading = false;
 		}
 	}
@@ -194,5 +216,16 @@
 		</div>
 	</form>
 </section>
+
+{#if loading}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-obsidian/90 p-4">
+		<div class="w-full max-w-md">
+			<AnalysisProgress activeIndex={stageIndex} />
+			<p class="mt-4 text-center text-xs text-muted">
+				Analisis membutuhkan waktu 30–90 detik tergantung durasi video.
+			</p>
+		</div>
+	</div>
+{/if}
 
 <TutorialModal open={showTutorial} onclose={() => (showTutorial = false)} />

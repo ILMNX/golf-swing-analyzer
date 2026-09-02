@@ -11,11 +11,75 @@ export type ClubType =
 
 export type ShotType = 'full_swing' | 'chip' | 'pitch' | 'putt';
 
-export interface SwingMetrics {
+export interface StatValue {
+	min: number;
+	max: number;
+	avg: number;
+	std: number;
+}
+
+export interface SwingMetricsSummary {
 	tempo: number;
 	posture: number;
 	rotation: number;
 	balance: number;
+	head_stability: number;
+}
+
+export interface SwingMetrics {
+	summary: SwingMetricsSummary;
+	head: {
+		stability_score: number;
+		lateral_movement_px: number;
+		vertical_movement_px: number;
+	};
+	shoulders: {
+		width_px: StatValue;
+		tilt_px: StatValue;
+		level_score: number;
+		rotation_range_px: number;
+	};
+	hips: {
+		width_px: StatValue;
+		rotation_range_px: number;
+	};
+	arms: {
+		left_elbow_angle_deg: StatValue;
+		right_elbow_angle_deg: StatValue;
+		left_wrist_travel_px: number;
+		right_wrist_travel_px: number;
+	};
+	legs: {
+		left_knee_angle_deg: StatValue;
+		right_knee_angle_deg: StatValue;
+		stance_width_px: StatValue;
+	};
+	joint_distances: Record<string, StatValue>;
+	joint_angles: Record<string, StatValue>;
+	frames_analyzed: number;
+}
+
+export interface AnalysisStage {
+	id: string;
+	label: string;
+	status: string;
+	duration_ms: number;
+	message?: string;
+}
+
+export interface ValidationInfo {
+	sharpness: number;
+	visible_keypoint_ratio: number;
+	person_height_ratio: number;
+	sampled_frames: number;
+	poses_detected: number;
+	video: {
+		width: number;
+		height: number;
+		fps: number;
+		duration_sec: number;
+		frame_count: number;
+	};
 }
 
 export interface SwingAnalysis {
@@ -25,8 +89,18 @@ export interface SwingAnalysis {
 	club: ClubType | string;
 	shot_type: ShotType | string;
 	metrics: SwingMetrics;
+	validation?: ValidationInfo;
+	stages?: AnalysisStage[];
+	annotated_video_url?: string;
+	analysis_id?: string;
 	analyzed_at: string;
 	filename: string;
+}
+
+export interface AnalysisError {
+	status: string;
+	code: string;
+	error: string;
 }
 
 export interface ClubOption {
@@ -83,3 +157,12 @@ export const CLUB_LABELS: Record<string, string> = Object.fromEntries(
 export const SHOT_LABELS: Record<string, string> = Object.fromEntries(
 	SHOT_OPTIONS.map((s) => [s.value, s.label])
 );
+
+export const ANALYSIS_STAGES = [
+	{ id: 'validate', label: 'Memvalidasi video' },
+	{ id: 'quality_check', label: 'Memeriksa kualitas & sudut kamera' },
+	{ id: 'extract_pose', label: 'Mengekstrak pose per frame' },
+	{ id: 'compute_metrics', label: 'Menghitung metrik sendi' },
+	{ id: 'render_video', label: 'Membuat video analisis' },
+	{ id: 'score', label: 'Menghitung skor & rekomendasi' }
+];

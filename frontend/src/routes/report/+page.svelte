@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import MetricsGrid from '$lib/components/MetricsGrid.svelte';
-	import ScoreGauge from '$lib/components/ScoreGauge.svelte';
-	import { loadReport } from '$lib/api';
+	import DetailedMetrics from '$lib/components/DetailedMetrics.svelte';
+	import SpiderChart from '$lib/components/SpiderChart.svelte';
+	import { getAnnotatedVideoUrl, loadReport } from '$lib/api';
 	import type { SwingAnalysis } from '$lib/types';
 	import { CLUB_LABELS, SHOT_LABELS } from '$lib/types';
 
 	let report = $state<SwingAnalysis | null>(null);
+	let videoError = $state(false);
 
 	onMount(() => {
 		report = loadReport();
@@ -21,6 +22,10 @@
 			minute: '2-digit'
 		});
 	}
+
+	const videoUrl = $derived(
+		report?.annotated_video_url ? getAnnotatedVideoUrl(report.annotated_video_url) : null
+	);
 </script>
 
 <section class="container-page py-8 sm:py-10">
@@ -34,51 +39,101 @@
 			<a href="/analyze" class="btn-primary mt-8 inline-flex">Mulai Analisis</a>
 		</div>
 	{:else}
+		<!-- Header -->
 		<div class="mb-6 flex flex-col gap-4 border-b border-border pb-6 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
 			<div class="min-w-0">
 				<p class="label">Laporan Sesi</p>
 				<h1 class="page-title">Hasil Analisis</h1>
 				<p class="mt-1 text-xs text-disabled">{formatDate(report.analyzed_at)}</p>
 			</div>
-			<a href="/analyze" class="btn-secondary w-full shrink-0 text-xs sm:w-auto">Sesi Baru</a>
+			<div class="flex flex-wrap items-center gap-3 text-xs text-muted">
+				<span>{CLUB_LABELS[report.club] ?? report.club}</span>
+				<span class="text-border">|</span>
+				<span>{SHOT_LABELS[report.shot_type] ?? report.shot_type}</span>
+				<span class="text-border">|</span>
+				<span class="truncate">{report.filename}</span>
+			</div>
 		</div>
 
-		<div class="grid w-full min-w-0 gap-5 sm:gap-6 lg:grid-cols-12">
-			<div class="card min-w-0 lg:col-span-4">
-				<ScoreGauge score={report.score} />
-			</div>
-
-			<div class="card min-w-0 lg:col-span-8">
-				<p class="label mb-4">Konfigurasi Sesi</p>
-				<div class="grid w-full min-w-0 gap-px border border-border bg-border sm:grid-cols-3">
-					<div class="min-w-0 bg-graphite p-4">
-						<p class="label">Club</p>
-						<p class="font-display text-base font-semibold text-offwhite sm:text-lg">
-							{CLUB_LABELS[report.club] ?? report.club}
-						</p>
+		<!-- Main analysis: Spider chart + score -->
+		<div class="card mb-5 w-full min-w-0 sm:mb-6">
+			<p class="label mb-6">Analisis Utama</p>
+			<div class="grid w-full min-w-0 items-center gap-8 lg:grid-cols-2">
+				<div class="flex justify-center">
+					<SpiderChart summary={report.metrics.summary} size={320} />
+				</div>
+				<div class="flex flex-col items-center justify-center gap-4 border-t border-border pt-6 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
+					<div class="text-center">
+						<p class="label">Overall Score</p>
+						<p class="font-display text-6xl font-bold tabular-nums text-offwhite">{report.score}</p>
+						<p class="mt-1 text-sm text-muted">dari 100</p>
 					</div>
-					<div class="min-w-0 bg-graphite p-4">
-						<p class="label">Pukulan</p>
-						<p class="font-display text-base font-semibold text-offwhite sm:text-lg">
-							{SHOT_LABELS[report.shot_type] ?? report.shot_type}
-						</p>
-					</div>
-					<div class="min-w-0 bg-graphite p-4 sm:col-span-1">
-						<p class="label">File</p>
-						<p class="truncate text-sm text-muted">{report.filename}</p>
+					<div class="grid w-full max-w-xs grid-cols-2 gap-2 text-center text-xs">
+						{#each [
+							{ label: 'Tempo', value: report.metrics.summary.tempo },
+							{ label: 'Postur', value: report.metrics.summary.posture },
+							{ label: 'Rotasi', value: report.metrics.summary.rotation },
+							{ label: 'Balance', value: report.metrics.summary.balance }
+						] as item}
+							<div class="border border-border bg-obsidian px-2 py-2">
+								<p class="text-muted">{item.label}</p>
+								<p class="font-display font-semibold text-offwhite">{item.value}</p>
+							</div>
+						{/each}
 					</div>
 				</div>
 			</div>
 		</div>
 
-		<div class="mt-5 w-full min-w-0 sm:mt-6">
-			<p class="label mb-3">Metrik Performa</p>
-			<MetricsGrid metrics={report.metrics} />
+		<!-- Notes / Recommendation -->
+		<div class="card mb-5 w-full min-w-0 sm:mb-6">
+			<p class="label">Catatan Analisis</p>
+			<p class="mt-3 text-sm leading-relaxed text-offwhite">{report.recommendation}</p>
+			{#if report.validation}
+				<div class="mt-4 border-t border-border pt-4">
+					<p class="label mb-2">Kualitas Video</p>
+					<div class="flex flex-wrap gap-4 text-xs text-muted">
+						<span>Ketajaman: {report.validation.sharpness.toFixed(0)}</span>
+						<span>Visibilitas sendi: {(report.validation.visible_keypoint_ratio * 100).toFixed(0)}%</span>
+						<span>{report.validation.video.duration_sec}s &middot; {report.validation.video.frame_count} frame</span>
+						<span>{report.metrics.frames_analyzed} frame dianalisis</span>
+					</div>
+				</div>
+			{/if}
 		</div>
 
-		<div class="card mt-5 w-full min-w-0 sm:mt-6">
-			<p class="label">Rekomendasi</p>
-			<p class="mt-2 text-sm leading-relaxed text-offwhite">{report.recommendation}</p>
+		<!-- Annotated video -->
+		{#if videoUrl}
+			<div class="card mb-5 w-full min-w-0 sm:mb-6">
+				<p class="label">Video Tracking Sendi</p>
+				<div class="overflow-hidden border border-border bg-obsidian">
+					{#if videoError}
+						<div class="flex min-h-48 items-center justify-center p-6 text-center text-sm text-muted">
+							Video tidak dapat diputar. Coba analisis ulang.
+						</div>
+					{:else}
+						<video
+							src={videoUrl}
+							controls
+							playsinline
+							preload="metadata"
+							class="max-h-[32rem] w-full object-contain"
+							onerror={() => (videoError = true)}
+						>
+							<track kind="captions" />
+						</video>
+					{/if}
+				</div>
+				<p class="mt-2 text-xs text-muted">
+					Hijau = skeleton &middot; titik terang = sendi &middot; garis putih = jejak gerakan
+				</p>
+			</div>
+		{/if}
+
+		<!-- Detailed metrics -->
+		<div class="w-full min-w-0">
+			<p class="label mb-3">Metrik Detail</p>
+			<DetailedMetrics metrics={report.metrics} />
 		</div>
 
 		<div class="mt-6 flex w-full flex-col gap-3 sm:mt-8 sm:flex-row">

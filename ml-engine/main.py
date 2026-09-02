@@ -1,31 +1,38 @@
-"""
-ML Engine — Golf Swing Analyzer
-FastAPI service that processes uploaded swing videos using YOLOv8-pose and OpenCV.
-"""
+"""FastAPI entrypoint for the ML engine."""
 
 import os
 import tempfile
 from pathlib import Path
 
-from fastapi import FastAPI, File, Form, UploadFile, HTTPException
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from ultralytics import YOLO
 
+import config
+from analyzer.exceptions import AnalysisError, ValidationError
+from analyzer.pipeline import SwingAnalysisPipeline
+
 # ---------------------------------------------------------------------------
-# Global model initialization — loaded once at startup to avoid per-request cost
+# Global model — loaded once at startup
 # ---------------------------------------------------------------------------
-MODEL_PATH = "yolov8n-pose.pt"
+MODEL_PATH = config.MODEL_PATH
 model = YOLO(MODEL_PATH)
+pipeline = SwingAnalysisPipeline(model)
+
+config.OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(
     title="Golf Swing Analyzer — ML Engine",
-    description="Processes golf swing videos and returns pose-based analysis.",
-    version="0.1.0",
+    description="Processes golf swing videos with YOLOv8-pose pose estimation.",
+    version="0.2.0",
 )
+
+app.mount("/outputs", StaticFiles(directory=str(config.OUTPUT_DIR)), name="outputs")
 
 
 @app.get("/health")
 async def health_check():
-    """Liveness probe for orchestration and load balancers."""
     return {"status": "ok"}
 
 
@@ -35,19 +42,9 @@ async def analyze_swing(
     club: str = Form("iron_7"),
     shot_type: str = Form("full_swing"),
 ):
-    """
-    Accept a video upload, run pose estimation, and return swing analysis.
-
-    Request:
-        multipart/form-data with a single 'video' field.
-
-    Response:
-        JSON with status, score, and recommendation.
-    """
     if not video.filename:
         raise HTTPException(status_code=400, detail="No file provided")
 
-    # Persist upload to a temporary file so OpenCV / YOLO can read from disk
     suffix = Path(video.filename).suffix or ".mp4"
     tmp_path: str | None = None
 
@@ -59,30 +56,22 @@ async def analyze_swing(
             content = await video.read()
             tmp.write(content)
 
-        # -------------------------------------------------------------------
-        # TODO: Insert YOLOv8-pose + OpenCV processing logic here.
-        #
-        # Example workflow:
-        #   1. cap = cv2.VideoCapture(tmp_path)
-        #   2. Loop frames, run model(frame) for pose keypoints
-        #   3. Compute swing metrics (hip rotation, club path, tempo, etc.)
-        #   4. Derive score and recommendation from metrics
-        # -------------------------------------------------------------------
-        _ = model  # reference model so linters don't flag it as unused
-        _ = club, shot_type  # used once real ML logic is implemented
+        result = pipeline.run(tmp_path, club=club, shot_type=shot_type)
+        return pipeline.to_dict(result)
 
-        return {
-            "status": "success",
-            "score": 85,
-            "recommendation": "Mock recommendation",
-        }
-
+    except ValidationError as exc:
+        return JSONResponse(
+            status_code=422,
+            content={
+                "status": "error",
+                "code": exc.code,
+                "error": str(exc),
+            },
+        )
+    except AnalysisError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(
-            status_code=500, detail=f"Analysis failed: {exc}"
-        ) from exc
-
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {exc}") from exc
     finally:
-        # Always remove the temporary file to prevent disk leaks
         if tmp_path and os.path.exists(tmp_path):
             os.remove(tmp_path)
