@@ -56,8 +56,19 @@
 	</div>
 </section>
 
-<section class="divider w-full">
-	<div class="container-page py-12 sm:py-16">
+<section class="relative overflow-hidden border-t border-border">
+	<div class="pointer-events-none absolute inset-0" aria-hidden="true">
+		<img
+			src="/process/driving-range.jpeg"
+			alt=""
+			class="absolute inset-0 h-full w-full object-cover object-center"
+			loading="lazy"
+		/>
+		<div class="absolute inset-0 bg-obsidian/35"></div>
+		<div class="absolute inset-0 bg-gradient-to-b from-obsidian/50 via-transparent to-obsidian/40"></div>
+	</div>
+
+	<div class="container-page relative z-10 py-12 sm:py-16">
 		<p class="label mb-6 sm:mb-8">Proses</p>
 		<div class="grid w-full min-w-0 gap-px border border-border bg-border sm:grid-cols-3">
 			{#each [
