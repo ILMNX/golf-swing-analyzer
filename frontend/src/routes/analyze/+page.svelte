@@ -8,6 +8,7 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import TutorialModal from '$lib/components/TutorialModal.svelte';
 	import { uploadSwing, saveReport } from '$lib/api';
+	import { hasSeenTutorial, markTutorialSeen } from '$lib/tutorialStorage';
 	import type { ClubType, ShotType } from '$lib/types';
 	import { ANALYSIS_STAGES, SHOT_OPTIONS } from '$lib/types';
 
@@ -34,7 +35,13 @@
 		const shotParam = page.url.searchParams.get('shot_type');
 		if (clubParam && VALID_CLUBS.has(clubParam)) club = clubParam as ClubType;
 		if (shotParam && VALID_SHOTS.has(shotParam)) shotType = shotParam as ShotType;
+		if (!hasSeenTutorial()) showTutorial = true;
 	});
+
+	function closeTutorial() {
+		showTutorial = false;
+		markTutorialSeen();
+	}
 
 	function startStageTimer() {
 		stageIndex = 0;
@@ -236,4 +243,4 @@
 	</div>
 {/if}
 
-<TutorialModal open={showTutorial} onclose={() => (showTutorial = false)} />
+<TutorialModal open={showTutorial} onclose={closeTutorial} />
