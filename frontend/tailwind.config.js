@@ -4,31 +4,27 @@ export default {
 	theme: {
 		extend: {
 			colors: {
-				fairway: {
-					50: '#f0fdf4',
-					100: '#dcfce7',
-					200: '#bbf7d0',
-					300: '#86efac',
-					400: '#4ade80',
-					500: '#22c55e',
-					600: '#16a34a',
-					700: '#15803d',
-					800: '#166534',
-					900: '#14532d',
-					950: '#052e16'
-				},
-				sand: {
-					50: '#fefce8',
-					100: '#fef9c3',
-					200: '#fef08a',
-					300: '#fde047',
-					400: '#facc15',
-					500: '#eab308'
-				}
+				obsidian: '#0B0F14',
+				graphite: '#151A21',
+				border: '#252C35',
+				golf: '#1E7A3D',
+				highlight: '#A6E3A1',
+				offwhite: '#E8E8E8',
+				muted: '#9AA3AD',
+				disabled: '#5C6570',
+				warning: '#D6A84F',
+				error: '#D96C6C'
 			},
 			fontFamily: {
-				display: ['Georgia', 'Cambria', 'Times New Roman', 'serif'],
+				display: ['Montserrat', 'system-ui', 'sans-serif'],
 				sans: ['Inter', 'system-ui', 'sans-serif']
+			},
+			borderRadius: {
+				sm: '4px',
+				DEFAULT: '6px',
+				md: '8px',
+				lg: '12px',
+				xl: '16px'
 			}
 		}
 	},

@@ -8,33 +8,28 @@
 	let { metrics }: Props = $props();
 
 	const items = $derived([
-		{ key: 'tempo', label: 'Tempo', value: metrics.tempo, icon: '⏱️' },
-		{ key: 'posture', label: 'Postur', value: metrics.posture, icon: '🧍' },
-		{ key: 'rotation', label: 'Rotasi', value: metrics.rotation, icon: '🔄' },
-		{ key: 'balance', label: 'Keseimbangan', value: metrics.balance, icon: '⚖️' }
+		{ key: 'tempo', label: 'Swing Tempo', value: metrics.tempo },
+		{ key: 'posture', label: 'Postur', value: metrics.posture },
+		{ key: 'rotation', label: 'Rotasi', value: metrics.rotation },
+		{ key: 'balance', label: 'Keseimbangan', value: metrics.balance }
 	]);
 
 	function barColor(value: number): string {
-		if (value >= 85) return 'bg-fairway-400';
-		if (value >= 70) return 'bg-fairway-500';
-		if (value >= 55) return 'bg-sand-400';
-		return 'bg-orange-400';
+		if (value >= 85) return 'bg-highlight';
+		if (value >= 70) return 'bg-golf';
+		if (value >= 55) return 'bg-warning';
+		return 'bg-error';
 	}
 </script>
 
-<div class="grid gap-4 sm:grid-cols-2">
+<div class="grid gap-px border border-border bg-border sm:grid-cols-2">
 	{#each items as item}
-		<div class="rounded-xl border border-fairway-800 bg-fairway-950/50 p-4">
-			<div class="mb-3 flex items-center justify-between">
-				<div class="flex items-center gap-2">
-					<span>{item.icon}</span>
-					<span class="text-sm font-medium text-fairway-200">{item.label}</span>
-				</div>
-				<span class="text-lg font-bold text-white">{item.value}</span>
-			</div>
-			<div class="h-2 overflow-hidden rounded-full bg-fairway-900">
+		<div class="bg-graphite p-5">
+			<p class="label">{item.label}</p>
+			<p class="metric-value">{item.value}</p>
+			<div class="mt-3 h-px w-full bg-border">
 				<div
-					class="h-full rounded-full transition-all duration-700 {barColor(item.value)}"
+					class="h-px transition-all duration-500 {barColor(item.value)}"
 					style="width: {item.value}%"
 				></div>
 			</div>

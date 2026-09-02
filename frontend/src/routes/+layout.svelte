@@ -10,7 +10,11 @@
 	<main class="flex-1">
 		{@render children()}
 	</main>
-	<footer class="border-t border-fairway-800/60 py-6 text-center text-sm text-fairway-500">
-		<p>SwingPro &mdash; Golf Swing Analyzer &copy; {new Date().getFullYear()}</p>
+	<footer class="border-t border-border py-5">
+		<div class="mx-auto max-w-6xl px-4 sm:px-6">
+			<p class="text-xs uppercase tracking-widest text-disabled">
+				SwingLab &mdash; Golf Swing Analyzer
+			</p>
+		</div>
 	</footer>
 </div>

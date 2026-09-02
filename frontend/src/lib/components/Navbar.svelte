@@ -8,28 +8,30 @@
 	];
 </script>
 
-<header class="sticky top-0 z-40 border-b border-fairway-800/60 bg-fairway-950/80 backdrop-blur-md">
+<header class="border-b border-border bg-obsidian">
 	<div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
-		<a href="/" class="flex items-center gap-3">
-			<div
-				class="flex h-10 w-10 items-center justify-center rounded-xl bg-fairway-700 text-lg font-bold text-sand-300"
-			>
-				⛳
-			</div>
+		<a href="/" class="group flex items-center gap-3">
+			<svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+				<path d="M16 6v18" stroke="#1E7A3D" stroke-width="1.5" stroke-linecap="round"/>
+				<path d="M16 6l5 3" stroke="#1E7A3D" stroke-width="1.5" stroke-linecap="round"/>
+				<circle cx="16" cy="24" r="2.5" stroke="#A6E3A1" stroke-width="1.5"/>
+			</svg>
 			<div>
-				<p class="font-display text-lg font-semibold leading-tight text-white">SwingPro</p>
-				<p class="text-xs text-fairway-400">Golf Swing Analyzer</p>
+				<p class="font-display text-sm font-bold uppercase tracking-widest text-offwhite">
+					SwingLab
+				</p>
+				<p class="text-[10px] uppercase tracking-widest text-muted">Performance Analysis</p>
 			</div>
 		</a>
 
-		<nav class="flex items-center gap-1 sm:gap-2">
+		<nav class="flex items-center">
 			{#each links as link}
 				<a
 					href={link.href}
-					class="rounded-lg px-3 py-2 text-sm font-medium transition sm:px-4
+					class="border-b-2 px-4 py-2 text-xs font-medium uppercase tracking-wider transition
 						{$page.url.pathname === link.href
-						? 'bg-fairway-800 text-white'
-						: 'text-fairway-300 hover:bg-fairway-900 hover:text-white'}"
+						? 'border-golf text-offwhite'
+						: 'border-transparent text-muted hover:text-offwhite'}"
 				>
 					{link.label}
 				</a>

@@ -22,22 +22,20 @@
 	}
 </script>
 
-<div class="space-y-4">
+<div class="space-y-5">
 	{#each categories as cat}
 		{@const clubs = CLUB_OPTIONS.filter((c) => c.category === cat.key)}
 		{#if clubs.length > 0}
 			<div>
-				<p class="mb-2 text-xs font-semibold uppercase tracking-wider text-fairway-500">
-					{cat.label}
-				</p>
-				<div class="flex flex-wrap gap-2">
+				<p class="label">{cat.label}</p>
+				<div class="flex flex-wrap gap-1.5">
 					{#each clubs as club}
 						<button
 							type="button"
-							class="rounded-xl border px-4 py-2 text-sm font-medium transition
+							class="rounded-md border px-3 py-1.5 text-xs font-medium uppercase tracking-wide transition
 								{value === club.value
-								? 'border-fairway-400 bg-fairway-700 text-white shadow-md'
-								: 'border-fairway-700 bg-fairway-950/50 text-fairway-300 hover:border-fairway-500'}"
+								? 'border-golf bg-golf/10 text-offwhite'
+								: 'border-border text-muted hover:border-muted hover:text-offwhite'}"
 							onclick={() => select(club.value)}
 						>
 							{club.label}

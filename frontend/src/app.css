@@ -4,28 +4,44 @@
 
 @layer base {
 	body {
-		@apply min-h-screen;
+		@apply min-h-screen bg-obsidian font-sans text-offwhite antialiased;
 	}
 }
 
 @layer components {
 	.btn-primary {
-		@apply inline-flex items-center justify-center gap-2 rounded-xl bg-fairway-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-fairway-900/40 transition hover:bg-fairway-400 focus:outline-none focus:ring-2 focus:ring-fairway-400 focus:ring-offset-2 focus:ring-offset-fairway-950 disabled:cursor-not-allowed disabled:opacity-50;
+		@apply inline-flex items-center justify-center gap-2 rounded-md bg-golf px-5 py-2.5 text-sm font-semibold text-offwhite transition hover:bg-golf/90 focus:outline-none focus:ring-1 focus:ring-golf focus:ring-offset-1 focus:ring-offset-obsidian disabled:cursor-not-allowed disabled:opacity-40;
 	}
 
 	.btn-secondary {
-		@apply inline-flex items-center justify-center gap-2 rounded-xl border border-fairway-700 bg-fairway-900/60 px-6 py-3 text-sm font-semibold text-fairway-100 transition hover:border-fairway-500 hover:bg-fairway-900 focus:outline-none focus:ring-2 focus:ring-fairway-600 focus:ring-offset-2 focus:ring-offset-fairway-950;
+		@apply inline-flex items-center justify-center gap-2 rounded-md border border-border bg-transparent px-5 py-2.5 text-sm font-semibold text-offwhite transition hover:border-muted focus:outline-none focus:ring-1 focus:ring-border focus:ring-offset-1 focus:ring-offset-obsidian disabled:cursor-not-allowed disabled:opacity-40;
+	}
+
+	.btn-ghost {
+		@apply inline-flex items-center justify-center gap-2 rounded-md bg-transparent px-3 py-2 text-sm font-medium text-muted transition hover:text-offwhite;
 	}
 
 	.card {
-		@apply rounded-2xl border border-fairway-800/80 bg-fairway-900/40 p-6 shadow-xl backdrop-blur-sm;
-	}
-
-	.input-field {
-		@apply w-full rounded-xl border border-fairway-700 bg-fairway-950/60 px-4 py-3 text-sm text-white placeholder-fairway-600 outline-none transition focus:border-fairway-500 focus:ring-2 focus:ring-fairway-500/30;
+		@apply rounded-md border border-border bg-graphite p-5;
 	}
 
 	.label {
-		@apply mb-2 block text-sm font-medium text-fairway-200;
+		@apply mb-2 block font-sans text-[11px] font-semibold uppercase tracking-widest text-muted;
+	}
+
+	.section-title {
+		@apply font-display text-xl font-semibold tracking-tight text-offwhite;
+	}
+
+	.page-title {
+		@apply font-display text-3xl font-bold tracking-tight text-offwhite sm:text-4xl;
+	}
+
+	.metric-value {
+		@apply font-display text-3xl font-bold tabular-nums text-offwhite;
+	}
+
+	.divider {
+		@apply border-t border-border;
 	}
 }
