@@ -33,6 +33,7 @@ class SwingPhases:
 @dataclass
 class BiomechanicsResult:
     handedness: str = "right"
+    address_frame: int = 0
     address_shoulder_width: float = 0.0
     spine_angle_address_deg: float = 0.0
     spine_angle_impact_deg: float = 0.0
@@ -78,11 +79,11 @@ class GolfBiomechanicsAnalyzer:
         if self.n_frames < 5:
             return BiomechanicsResult(detection_quality=self._detection_quality())
 
-        address_width = self._shoulder_width(0)
+        phases = self._detect_swing_phases()
+        address_width = self._shoulder_width(phases.address)
         if address_width < 1.0:
             address_width = self._median_shoulder_width() or 1.0
 
-        phases = self._detect_swing_phases()
         spine_address = self._spine_angle_deg(phases.address)
         spine_impact = self._spine_angle_deg(phases.impact)
         spine_retention = abs(spine_address - spine_impact)
@@ -97,6 +98,7 @@ class GolfBiomechanicsAnalyzer:
 
         return BiomechanicsResult(
             handedness=self.handedness,
+            address_frame=phases.address,
             address_shoulder_width=round(address_width, 1),
             spine_angle_address_deg=round(spine_address, 1),
             spine_angle_impact_deg=round(spine_impact, 1),
@@ -219,13 +221,15 @@ class GolfBiomechanicsAnalyzer:
         return float(np.median(widths)) if widths else 0.0
 
     def _infer_handedness(self) -> str:
-        """Infer trail side from address ankle positions (face-on heuristic)."""
+        """
+        Face-on heuristic for right-handed golfer:
+        lead foot (left) is usually farther to the image-right than trail foot (right).
+        """
         la = self._point(0, KeypointIndex.LEFT_ANKLE)
         ra = self._point(0, KeypointIndex.RIGHT_ANKLE)
         if la is None or ra is None:
             return "right"
-        # Trail foot typically farther from camera center / more to screen-right for RH golfer
-        return "right" if ra[0] >= la[0] else "left"
+        return "right" if float(la[0]) > float(ra[0]) else "left"
 
     def _detection_quality(self) -> float:
         core = [
@@ -277,22 +281,22 @@ class GolfBiomechanicsAnalyzer:
         return None
 
     def _head_stability(
-        self, start: int, end: int, address_shoulder_width: float
+        self, address: int, impact: int, address_shoulder_width: float
     ) -> tuple[float, float, float]:
-        xs, ys = [], []
-        for i in range(start, min(end + 1, self.n_frames)):
-            pt = self._head_point(i)
-            if pt is not None:
-                xs.append(float(pt[0]))
-                ys.append(float(pt[1]))
-
-        if len(xs) < 2 or address_shoulder_width < 1.0:
+        """
+        Head drift from address to impact (not max-min over backswing).
+        Lateral slide is penalized more than vertical dip/rotation.
+        """
+        head_addr = self._head_point(address)
+        head_imp = self._head_point(impact)
+        if head_addr is None or head_imp is None or address_shoulder_width < 1.0:
             return 0.0, 0.0, 0.0
 
-        lateral = max(xs) - min(xs)
-        vertical = max(ys) - min(ys)
-        # Euclidean range normalized by address shoulder width
-        normalized = float(math.hypot(lateral, vertical) / address_shoulder_width)
+        lateral = abs(float(head_imp[0] - head_addr[0]))
+        vertical = abs(float(head_imp[1] - head_addr[1]))
+        normalized = float(
+            math.hypot(lateral, vertical * 0.35) / address_shoulder_width
+        )
         return normalized, lateral, vertical
 
     def _hip_sway(self, address: int, top: int, address_shoulder_width: float) -> tuple[float, float]:
@@ -378,60 +382,87 @@ class GolfBiomechanicsAnalyzer:
         pt = self._point(frame, self._lead[2])
         return float(pt[1]) if pt is not None else None
 
-    def _find_backswing_start(self, address_y: float, scale: float) -> int:
-        """First frame where lead wrist rises meaningfully from address."""
-        threshold = max(8.0, scale * 0.06)
-        for i in range(8, min(90, self.n_frames)):
-            wy = self._lead_wrist_y(i)
-            if wy is not None and (address_y - wy) >= threshold:
-                return max(0, i - 2)
-        return 8
+    def _wrist_speed_series(self) -> list[float]:
+        speeds = [0.0]
+        for i in range(1, self.n_frames):
+            total = 0.0
+            count = 0
+            for wrist in (KeypointIndex.LEFT_WRIST, KeypointIndex.RIGHT_WRIST):
+                p0 = self._point(i - 1, wrist)
+                p1 = self._point(i, wrist)
+                if p0 is not None and p1 is not None:
+                    total += float(np.linalg.norm(p1 - p0))
+                    count += 1
+            speeds.append(total / max(count, 1))
+        return speeds
+
+    def _detect_address_frame(self, speeds: list[float]) -> int:
+        """Last quiet frame before backswing wrist motion begins."""
+        sample = speeds[20:min(200, self.n_frames)]
+        if not sample:
+            return 0
+
+        quiet = float(np.percentile(sample, 25))
+        threshold = max(2.0, quiet * 3.5 + 0.8)
+
+        movement_start: int | None = None
+        for i in range(35, min(280, self.n_frames - 12)):
+            if float(np.mean(speeds[i : i + 8])) > threshold:
+                movement_start = i
+                break
+
+        if movement_start is None:
+            return 0
+        return max(0, movement_start - 10)
+
+    def _shoulder_rotation_at(self, frame: int, address: int, address_width: float) -> float:
+        width_rot = self._rotation_from_width(self._shoulder_width(frame), address_width)
+        angle_rot = abs(
+            self._shoulder_line_angle_deg(frame) - self._shoulder_line_angle_deg(address)
+        )
+        return max(width_rot, angle_rot)
 
     def _detect_swing_phases(self) -> SwingPhases:
-        address = 0
+        speeds = self._wrist_speed_series()
+        address = self._detect_address_frame(speeds)
         address_width = self._shoulder_width(address) or self._median_shoulder_width() or 1.0
-        address_shoulder_angle = self._shoulder_line_angle_deg(address)
         address_y = self._lead_wrist_y(address)
         if address_y is None:
             address_y = 0.0
 
-        backswing_start = self._find_backswing_start(address_y, address_width)
-        # Limit search to backswing window — avoids follow-through false top
-        max_backswing_span = max(60, int(self.n_frames * 0.25))
-        search_end = min(self.n_frames - 1, backswing_start + max_backswing_span)
+        search_end = min(self.n_frames - 1, address + 200)
 
-        shoulder_rots: list[tuple[int, float]] = []
-        wrist_heights: list[tuple[int, float]] = []
+        # Top: peak shoulder rotation (reliable for face-on; wrist-only top fires too early)
+        top = address + 5
+        best_rot = 0.0
+        for i in range(address + 5, search_end):
+            rot = self._shoulder_rotation_at(i, address, address_width)
+            if rot > best_rot:
+                best_rot = rot
+                top = i
 
-        for i in range(backswing_start, search_end):
-            width_rot = self._rotation_from_width(self._shoulder_width(i), address_width)
-            angle_rot = abs(self._shoulder_line_angle_deg(i) - address_shoulder_angle)
-            shoulder_rots.append((i, max(width_rot, angle_rot)))
+        # Fallback: highest hands if rotation signal is weak
+        if best_rot < 5.0:
+            wrist_heights: list[tuple[int, float]] = []
+            for i in range(address + 5, search_end):
+                wy = self._lead_wrist_y(i)
+                if wy is not None:
+                    wrist_heights.append((i, wy))
+            if wrist_heights:
+                top = min(wrist_heights, key=lambda t: t[1])[0]
 
+        # Impact: after top, hands reach lowest point (max wrist Y in image coords)
+        impact = min(top + 10, self.n_frames - 1)
+        post_top_limit = min(self.n_frames - 1, top + 120)
+        post_top: list[tuple[int, float]] = []
+        for i in range(top + 5, post_top_limit):
             wy = self._lead_wrist_y(i)
             if wy is not None:
-                wrist_heights.append((i, wy))
+                post_top.append((i, wy))
+        if post_top:
+            impact = max(post_top, key=lambda t: t[1])[0]
 
-        if wrist_heights:
-            top = min(wrist_heights, key=lambda t: t[1])[0]
-        elif shoulder_rots and max(r for _, r in shoulder_rots) > 3.0:
-            top = max(shoulder_rots, key=lambda t: t[1])[0]
-        else:
-            top = min(backswing_start + 30, self.n_frames - 2)
-
-        # Impact: after top, wrists return closest to address height within downswing window
-        impact = min(top + 3, self.n_frames - 1)
-        if address_y > 0:
-            post_top_limit = min(self.n_frames, top + max(30, int(self.n_frames * 0.15)))
-            post_top = [
-                (i, self._lead_wrist_y(i))
-                for i in range(top + 1, post_top_limit)
-                if self._lead_wrist_y(i) is not None
-            ]
-            if post_top:
-                impact = min(post_top, key=lambda t: abs(t[1] - address_y))[0]
-
-        impact = max(impact, top + 1)
+        impact = max(impact, top + 5)
         impact = min(impact, self.n_frames - 1)
 
         backswing = max(1, top - address)
@@ -478,32 +509,49 @@ def score_posture(spine_retention_deg: float) -> int:
 
 
 def score_head_stability(movement_normalized: float) -> int:
-    """Lower normalized head travel is better. Typical good range < 0.25."""
-    return int(np.clip(100 - movement_normalized * 200.0, 0, 100))
+    """Address→impact head drift. Pro target: lateral drift < 20% shoulder width."""
+    if movement_normalized <= 0.0:
+        return 75
+    if movement_normalized <= 0.18:
+        return int(np.clip(92 - movement_normalized * 40, 85, 100))
+    if movement_normalized <= 0.32:
+        return int(np.clip(85 - (movement_normalized - 0.18) * 120, 60, 90))
+    if movement_normalized <= 0.50:
+        return int(np.clip(65 - (movement_normalized - 0.32) * 150, 35, 70))
+    return int(np.clip(35 - (movement_normalized - 0.50) * 80, 0, 40))
 
 
 def score_balance(sway_normalized: float) -> int:
-    """Moderate sway is acceptable; excessive lateral shift is penalized."""
-    return int(np.clip(100 - sway_normalized * 130.0, 0, 100))
+    """Hip sway during backswing — some shift is normal on full swings."""
+    if sway_normalized <= 0.0:
+        return 75
+    if sway_normalized <= 0.22:
+        return int(np.clip(88 - sway_normalized * 60, 75, 95))
+    if sway_normalized <= 0.42:
+        return int(np.clip(88 - (sway_normalized - 0.22) * 140, 45, 85))
+    return int(np.clip(50 - (sway_normalized - 0.42) * 90, 0, 50))
 
 
 def score_rotation(x_factor_deg: float) -> int:
-    """Peak X-factor near 20–45° scores highest."""
+    """Peak X-factor; tour range roughly 10–40° in 2D pose estimation."""
     if x_factor_deg <= 0:
-        return 0
-    if 20.0 <= x_factor_deg <= 45.0:
-        return int(np.clip(80 + (x_factor_deg - 20.0) * 0.8, 0, 100))
-    if x_factor_deg < 20.0:
-        return int(np.clip(x_factor_deg / 20.0 * 75.0, 0, 75))
-    return int(np.clip(100 - (x_factor_deg - 45.0) * 2.5, 0, 100))
+        return 55
+    if 12.0 <= x_factor_deg <= 38.0:
+        return int(np.clip(72 + (x_factor_deg - 12.0) * 1.1, 0, 100))
+    if x_factor_deg < 12.0:
+        return int(np.clip(45 + x_factor_deg * 2.2, 0, 72))
+    return int(np.clip(100 - (x_factor_deg - 38.0) * 2.0, 50, 100))
 
 
 def score_tempo(ratio: float) -> int:
-    """Tour-average tempo ratio ≈ 3:1."""
+    """Tour-average tempo ratio ≈ 3:1; allow wider band for consumer video frame rates."""
     if ratio <= 0:
-        return 0
-    deviation = abs(ratio - 3.0)
-    return int(np.clip(100 - deviation * 22.0, 0, 100))
+        return 55
+    if 2.0 <= ratio <= 4.0:
+        return int(np.clip(95 - abs(ratio - 3.0) * 18, 55, 100))
+    if ratio < 2.0:
+        return int(np.clip(55 + ratio * 15, 45, 75))
+    return int(np.clip(75 - (ratio - 4.0) * 12, 40, 75))
 
 
 def biomechanics_to_summary(bio: BiomechanicsResult) -> dict[str, int]:
@@ -524,6 +572,7 @@ def biomechanics_to_summary(bio: BiomechanicsResult) -> dict[str, int]:
 def biomechanics_to_dict(bio: BiomechanicsResult) -> dict[str, Any]:
     return {
         "handedness": bio.handedness,
+        "address_frame": bio.address_frame,
         "address_shoulder_width_px": bio.address_shoulder_width,
         "spine_angle_address_deg": bio.spine_angle_address_deg,
         "spine_angle_impact_deg": bio.spine_angle_impact_deg,

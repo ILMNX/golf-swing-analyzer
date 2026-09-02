@@ -125,9 +125,11 @@
 					</dd>
 				</div>
 				<div class="flex justify-between gap-4">
-					<dt class="text-muted">Downswing</dt>
+					<dt class="text-muted">Fase (frame)</dt>
 					<dd class="text-offwhite">
-						{metrics.tempo?.downswing_frames ?? metrics.biomechanics?.downswing_frames ?? 0} frame
+						Addr {metrics.tempo?.address_frame ?? metrics.biomechanics?.address_frame ?? 0}
+						&middot; Top {metrics.tempo?.top_frame ?? metrics.biomechanics?.top_frame ?? 0}
+						&middot; Imp {metrics.tempo?.impact_frame ?? metrics.biomechanics?.impact_frame ?? 0}
 					</dd>
 				</div>
 			</dl>

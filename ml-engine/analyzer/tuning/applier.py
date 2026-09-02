@@ -24,10 +24,10 @@ def _penalty_for_range(actual: float, expected: ExpectedRange) -> int:
     penalty = 0
     if expected.min is not None and actual < expected.min:
         gap = expected.min - actual
-        penalty += min(12, int(gap / max(abs(expected.min), 1) * 15))
+        penalty += min(8, int(gap / max(abs(expected.min), 1) * 10))
     if expected.max is not None and actual > expected.max:
         gap = actual - expected.max
-        penalty += min(12, int(gap / max(abs(expected.max), 1) * 15))
+        penalty += min(8, int(gap / max(abs(expected.max), 1) * 10))
     return penalty
 
 

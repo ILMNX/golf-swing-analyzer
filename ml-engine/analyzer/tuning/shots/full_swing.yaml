@@ -19,9 +19,9 @@ metrics_focus:
 
 expected_ranges:
   x_factor_deg:
-    min: 8
-    ideal: 25
-    max: 50
+    min: 5
+    ideal: 20
+    max: 45
   tempo_ratio:
     min: 2.6
     ideal: 3.0

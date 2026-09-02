@@ -129,6 +129,7 @@ def compute_all_metrics(
             "downswing_frames": bio.downswing_frames,
             "top_frame": bio.top_frame,
             "impact_frame": bio.impact_frame,
+            "address_frame": bio.address_frame,
         },
         "balance": {
             "sway_px": bio.hip_sway_px,

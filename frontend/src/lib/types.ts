@@ -39,6 +39,7 @@ export interface SwingMetrics {
 	summary: SwingMetricsSummary;
 	biomechanics?: {
 		handedness: string;
+		address_frame: number;
 		address_shoulder_width_px: number;
 		spine_angle_address_deg: number;
 		spine_angle_impact_deg: number;
@@ -84,6 +85,7 @@ export interface SwingMetrics {
 		downswing_frames: number;
 		top_frame: number;
 		impact_frame: number;
+		address_frame?: number;
 	};
 	balance?: {
 		sway_px: number;
