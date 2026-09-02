@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { BarChart3, Home, ScanLine } from '@lucide/svelte';
+	import { BarChart3, Home, ScanLine } from 'lucide';
+	import Icon from '$lib/components/Icon.svelte';
 
 	const links = [
 		{ href: '/', label: 'Beranda', icon: Home },
@@ -36,7 +37,6 @@
 
 		<nav class="flex shrink-0 items-center">
 			{#each links as link}
-				{@const Icon = link.icon}
 				<a
 					href={link.href}
 					class="flex items-center gap-1.5 border-b-2 px-2 py-2 text-[10px] font-medium uppercase tracking-wide transition sm:gap-2 sm:px-3 sm:text-xs sm:tracking-wider
@@ -44,7 +44,7 @@
 						? 'border-golf text-offwhite'
 						: 'border-transparent text-muted hover:text-offwhite'}"
 				>
-					<Icon size={14} strokeWidth={1.5} class="hidden sm:block" />
+					<Icon icon={link.icon} size={14} class="hidden sm:block" />
 					<span>{link.label}</span>
 				</a>
 			{/each}

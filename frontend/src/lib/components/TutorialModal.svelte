@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { Camera, Lightbulb, Shirt, Timer, X } from '@lucide/svelte';
+	import { Camera, Lightbulb, Shirt, Timer, X } from 'lucide';
+	import Icon from '$lib/components/Icon.svelte';
 
 	interface Props {
 		open?: boolean;
@@ -64,16 +65,15 @@
 					aria-label="Tutup"
 					onclick={() => onclose?.()}
 				>
-					<X size={16} strokeWidth={1.5} />
+					<Icon icon={X} size={16} />
 				</button>
 			</div>
 
 			<ol class="space-y-0 border border-border">
 				{#each tips as tip, i}
-					{@const Icon = tip.icon}
 					<li class="flex gap-3 border-b border-border px-4 py-4 last:border-0">
 						<div class="flex h-8 w-8 shrink-0 items-center justify-center border border-border text-muted">
-							<Icon size={15} strokeWidth={1.5} />
+							<Icon icon={tip.icon} size={15} />
 						</div>
 						<div class="min-w-0">
 							<p class="text-[11px] font-semibold uppercase tracking-wide text-golf">
