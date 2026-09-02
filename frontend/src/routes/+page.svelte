@@ -1,24 +1,39 @@
-<section class="container-page py-12 sm:py-16 lg:py-24">
-	<div class="grid w-full min-w-0 items-end gap-10 lg:grid-cols-12 lg:gap-16">
-		<div class="min-w-0 lg:col-span-7">
-			<p class="label mb-4">Swing Analysis</p>
-			<h1 class="page-title leading-none">
-				Ukur.<br />
-				Analisis.<br />
-				<span class="text-highlight">Perbaiki.</span>
-			</h1>
-			<p class="mt-6 max-w-md text-sm leading-relaxed text-muted">
-				Alat analisis performa swing golf berbasis pose detection. Upload video, konfigurasi
-				club, dan dapatkan metrik terukur beserta rekomendasi perbaikan.
-			</p>
-			<div class="mt-8 flex flex-wrap gap-3 sm:mt-10">
-				<a href="/analyze" class="btn-primary">Analisis Swing</a>
-				<a href="/report" class="btn-secondary">Laporan Terakhir</a>
-			</div>
-		</div>
+<section class="relative overflow-hidden border-b border-border">
+	<!-- Hero background: golfer figure, right-aligned -->
+	<div class="pointer-events-none absolute inset-0" aria-hidden="true">
+		<img
+			src="/hero/golfer.jpeg"
+			alt=""
+			class="absolute inset-0 h-full w-full object-cover object-[75%_center] sm:object-right"
+			fetchpriority="high"
+		/>
+		<div
+			class="absolute inset-0 bg-gradient-to-r from-obsidian from-35% via-obsidian/90 via-55% to-obsidian/25 to-100% sm:from-40% sm:via-obsidian/75 sm:to-transparent"
+		></div>
+		<div class="absolute inset-0 bg-gradient-to-t from-obsidian via-transparent to-obsidian/50"></div>
+	</div>
 
-		<div class="min-w-0 lg:col-span-5">
-			<div class="card">
+	<div class="container-page relative z-10 py-12 sm:py-16 lg:min-h-[32rem] lg:py-24">
+		<div class="grid w-full min-w-0 items-end gap-10 lg:grid-cols-12 lg:gap-16">
+			<div class="min-w-0 lg:col-span-7">
+				<p class="label mb-4">Swing Analysis</p>
+				<h1 class="page-title leading-none">
+					Ukur.<br />
+					Analisis.<br />
+					<span class="text-highlight">Perbaiki.</span>
+				</h1>
+				<p class="mt-6 max-w-md text-sm leading-relaxed text-muted">
+					Alat analisis performa swing golf berbasis pose detection. Upload video, konfigurasi
+					club, dan dapatkan metrik terukur beserta rekomendasi perbaikan.
+				</p>
+				<div class="mt-8 flex flex-wrap gap-3 sm:mt-10">
+					<a href="/analyze" class="btn-primary">Analisis Swing</a>
+					<a href="/report" class="btn-secondary">Laporan Terakhir</a>
+				</div>
+			</div>
+
+			<div class="min-w-0 lg:col-span-5">
+				<div class="card border-border/80 bg-graphite/90 backdrop-blur-[2px]">
 				<p class="label mb-6">Yang Diukur</p>
 				<div class="space-y-5">
 					{#each [
@@ -34,6 +49,7 @@
 							<span class="shrink-0 font-display text-sm font-semibold text-disabled">—</span>
 						</div>
 					{/each}
+				</div>
 				</div>
 			</div>
 		</div>
