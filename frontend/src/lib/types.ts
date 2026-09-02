@@ -51,6 +51,7 @@ export interface SwingMetrics {
 		hip_rotation_max_deg: number;
 		x_factor_deg: number;
 		tempo_ratio: number;
+		tempo_confidence?: number;
 		backswing_frames: number;
 		downswing_frames: number;
 		lead_arm_straightness_impact_deg: number;
@@ -81,6 +82,7 @@ export interface SwingMetrics {
 	};
 	tempo?: {
 		ratio: number;
+		confidence?: number;
 		backswing_frames: number;
 		downswing_frames: number;
 		top_frame: number;
@@ -98,6 +100,8 @@ export interface SwingMetrics {
 	quality?: {
 		detection_quality: number;
 		min_keypoint_confidence: number;
+		tempo_confidence?: number;
+		low_fps_warning?: boolean;
 	};
 	joint_distances: Record<string, StatValue>;
 	joint_angles: Record<string, StatValue>;

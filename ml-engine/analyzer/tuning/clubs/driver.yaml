@@ -8,9 +8,12 @@ expected_ranges:
   x_factor_deg:
     min: 12
     ideal: 28
+    max: 45
   tempo_ratio:
-    min: 2.8
-    ideal: 3.2
+    min: 2.0
+    ideal: 3.0
+  hip_sway_normalized:
+    max: 0.65
 
 recommendation_rules:
   - metric: rotation

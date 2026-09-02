@@ -94,12 +94,13 @@ def compute_all_metrics(
     poses: list[FramePose],
     profile: TuningProfile | None = None,
     phase_hints: SwingPhases | None = None,
+    fps: float | None = None,
 ) -> dict[str, Any]:
     valid_poses = [p for p in poses if PoseExtractor.visible_ratio(p) > 0.3]
     if not valid_poses:
         valid_poses = [p for p in poses if p is not None]
 
-    analyzer = GolfBiomechanicsAnalyzer(valid_poses)
+    analyzer = GolfBiomechanicsAnalyzer(valid_poses, fps=fps)
     bio = analyzer.analyze(phase_hints=phase_hints)
     summary = biomechanics_to_summary(bio)
 
@@ -127,6 +128,7 @@ def compute_all_metrics(
         },
         "tempo": {
             "ratio": bio.tempo_ratio,
+            "confidence": bio.tempo_confidence,
             "backswing_frames": bio.backswing_frames,
             "downswing_frames": bio.downswing_frames,
             "top_frame": bio.top_frame,
@@ -144,6 +146,8 @@ def compute_all_metrics(
         "quality": {
             "detection_quality": bio.detection_quality,
             "min_keypoint_confidence": min_conf,
+            "tempo_confidence": bio.tempo_confidence,
+            "low_fps_warning": bool(fps is not None and fps < 45.0),
         },
         "joint_distances": compute_joint_distances(valid_poses, min_conf),
         "joint_angles": compute_joint_angles(valid_poses, min_conf),

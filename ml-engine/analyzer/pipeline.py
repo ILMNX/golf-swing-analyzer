@@ -144,7 +144,7 @@ class SwingAnalysisPipeline:
 
         metrics = run_stage(
             StageId.COMPUTE_METRICS,
-            lambda: compute_all_metrics(valid_poses, profile),
+            lambda: compute_all_metrics(valid_poses, profile, fps=meta.fps),
         )
 
         # Attach source-frame phase markers for verification (relative to original upload)

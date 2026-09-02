@@ -28,15 +28,15 @@ expected_ranges:
     ideal: 30
     max: 50
   tempo_ratio:
-    min: 2.5
+    min: 2.0
     ideal: 3.0
-    max: 3.8
+    max: 4.0
   spine_angle_retention_deg:
     max: 12
   head_movement_normalized:
-    max: 0.35
+    max: 0.25
   hip_sway_normalized:
-    max: 0.40
+    max: 0.55
 
 recommendation_rules:
   - metric: head_stability

@@ -85,12 +85,13 @@
 						<p class="font-display text-6xl font-bold tabular-nums text-offwhite">{report.score}</p>
 						<p class="mt-1 text-sm text-muted">dari 100</p>
 					</div>
-					<div class="grid w-full max-w-xs grid-cols-2 gap-2 text-center text-xs">
+					<div class="grid w-full max-w-xs grid-cols-2 gap-2 text-center text-xs sm:max-w-sm sm:grid-cols-3">
 						{#each [
 							{ label: 'Tempo', value: report.metrics.summary.tempo },
 							{ label: 'Postur', value: report.metrics.summary.posture },
 							{ label: 'Rotasi', value: report.metrics.summary.rotation },
-							{ label: 'Balance', value: report.metrics.summary.balance }
+							{ label: 'Balance', value: report.metrics.summary.balance },
+							{ label: 'Kepala', value: report.metrics.summary.head_stability }
 						] as item}
 							<div class="border border-border bg-obsidian px-2 py-2">
 								<p class="text-muted">{item.label}</p>
@@ -112,9 +113,15 @@
 					<div class="flex flex-wrap gap-4 text-xs text-muted">
 						<span>Ketajaman: {report.validation.sharpness.toFixed(0)}</span>
 						<span>Visibilitas sendi: {(report.validation.visible_keypoint_ratio * 100).toFixed(0)}%</span>
+						<span>{report.validation.video.fps.toFixed(0)} fps</span>
 						<span>{report.validation.video.duration_sec}s &middot; {report.validation.video.frame_count} frame</span>
 						<span>{report.metrics.frames_analyzed} frame dianalisis</span>
 					</div>
+					{#if report.metrics.quality?.low_fps_warning}
+						<p class="mt-2 text-xs text-muted">
+							Video di bawah 45 fps — metrik tempo dan rotasi kurang akurat. Rekam ulang di 60 fps untuk hasil lebih baik.
+						</p>
+					{/if}
 				</div>
 			{/if}
 			{#if report.trim?.applied}
