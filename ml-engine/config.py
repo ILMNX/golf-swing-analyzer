@@ -7,6 +7,8 @@ OUTPUT_DIR = BASE_DIR / "output"
 VIDEO_DIR = BASE_DIR / "video"
 
 MODEL_PATH = "yolov8n-pose.pt"
+# Custom YOLO clubhead weights (train via scripts/train_clubhead.py).
+CLUB_MODEL_PATH = BASE_DIR / "yolov8n-club.pt"
 
 # Video technical limits
 MIN_DURATION_SEC = 1.0
@@ -19,8 +21,10 @@ MIN_FPS = 15.0
 # Auto-trim swing segment (Tier 1)
 TRIM_SCAN_STEP = 4                    # scout every Nth frame
 TRIM_PADDING_BEFORE_ADDRESS_SEC = 0.5 # keep half-second before address
-TRIM_PADDING_AFTER_IMPACT_SEC = 1.0   # keep 1s follow-through after impact
+TRIM_PADDING_AFTER_IMPACT_SEC = 2.0   # keep follow-through after impact
 TRIM_MIN_FRAMES = 45                  # minimum trimmed segment length
+TRIM_MAX_TAIL_DISCARD_RATIO = 0.38    # if cut would drop more than this of the video after impact, keep more
+TRIM_MIN_BACKSWING_SEC = 0.35         # scout phases with shorter backswing are treated as invalid
 
 # Quality thresholds
 MIN_SHARPNESS = 50.0          # Laplacian variance
@@ -33,8 +37,13 @@ VALIDATION_SAMPLE_FRAMES = 12
 COLOR_SKELETON = (61, 122, 30)       # #1E7A3D
 COLOR_JOINT = (161, 227, 166)        # #A6E3A1
 COLOR_TRAIL = (200, 200, 232)        # subtle off-white trail
+COLOR_CLUB = (0, 0, 255)             # red shaft (BGR)
+COLOR_CLUB_TIP = (0, 40, 255)        # bright red tip
+COLOR_CLUB_TRAIL = (40, 40, 220)     # red tip path trail
 SKELETON_THICKNESS = 2
 JOINT_RADIUS = 4
+CLUB_SHAFT_THICKNESS = 3
+CLUB_TIP_RADIUS = 6
 
 # Annotated output: repeat each frame N times at the same fps (smooth slow motion).
 SLOWMO_REPEAT_FACTOR = 4

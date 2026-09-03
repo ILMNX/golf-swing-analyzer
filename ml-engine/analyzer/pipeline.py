@@ -13,6 +13,7 @@ from ultralytics import YOLO
 import config
 from analyzer.exceptions import ProcessingError, ValidationError
 from analyzer.metrics.compute import compute_all_metrics
+from analyzer.club_track import track_club
 from analyzer.overlay import render_annotated_video
 from analyzer.pose import FramePose, PoseExtractor
 from analyzer.scoring import score_swing
@@ -28,6 +29,7 @@ class StageId(str, Enum):
     QUALITY_CHECK = "quality_check"
     LOCATE_SWING = "locate_swing"
     EXTRACT_POSE = "extract_pose"
+    TRACK_CLUB = "track_club"
     COMPUTE_METRICS = "compute_metrics"
     RENDER_VIDEO = "render_video"
     SCORE = "score"
@@ -38,6 +40,7 @@ STAGE_LABELS: dict[StageId, str] = {
     StageId.QUALITY_CHECK: "Memeriksa kualitas & sudut kamera",
     StageId.LOCATE_SWING: "Mencari segmen swing",
     StageId.EXTRACT_POSE: "Mengekstrak pose per frame",
+    StageId.TRACK_CLUB: "Melacak stik golf",
     StageId.COMPUTE_METRICS: "Menghitung metrik sendi",
     StageId.RENDER_VIDEO: "Membuat video analisis",
     StageId.SCORE: "Menghitung skor & rekomendasi",
@@ -144,9 +147,31 @@ class SwingAnalysisPipeline:
                 code="insufficient_pose_data",
             )
 
+        # Preliminary phases for club tip impact search (handedness + address/top/impact).
+        from analyzer.metrics.biomechanics import GolfBiomechanicsAnalyzer
+
+        prelim = GolfBiomechanicsAnalyzer(valid_poses, fps=meta.fps).analyze()
+
+        club_result = run_stage(
+            StageId.TRACK_CLUB,
+            lambda: track_club(
+                video_path,
+                poses,
+                handedness=prelim.handedness,
+                phases=prelim.phases,
+                start_frame=trim.source_start_frame,
+                end_frame=trim.source_end_frame,
+            ),
+        )
+
         metrics = run_stage(
             StageId.COMPUTE_METRICS,
-            lambda: compute_all_metrics(valid_poses, profile, fps=meta.fps),
+            lambda: compute_all_metrics(
+                valid_poses,
+                profile,
+                fps=meta.fps,
+                club=club_result,
+            ),
         )
 
         # Attach source-frame phase markers for verification (relative to original upload)
@@ -174,6 +199,7 @@ class SwingAnalysisPipeline:
                 end_frame=trim.source_end_frame,
                 slow_output_path=slow_path,
                 slowmo_factor=config.SLOWMO_REPEAT_FACTOR,
+                club_tracks=club_result.tracks,
             ),
         )
 

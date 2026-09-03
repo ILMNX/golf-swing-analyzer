@@ -1,0 +1,7 @@
+# Auto-synced by train_clubhead.py
+path: /home/gibeedev/Documents/ngoding/golf-swing-analyzer/ml-engine/datasets/clubhead
+train: images/train
+val: images/val
+
+names:
+  0: clubhead

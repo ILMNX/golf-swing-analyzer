@@ -159,6 +159,32 @@
 					</p>
 				</div>
 			{/if}
+			{#if report.metrics.club}
+				<div class="mt-4 border-t border-border pt-4">
+					<p class="label mb-2">Club Tracking</p>
+					<div class="flex flex-wrap gap-4 text-xs text-muted">
+						<span>Skor track: {report.metrics.club.tracking_score}</span>
+						<span>Confidence: {(report.metrics.club.mean_confidence * 100).toFixed(0)}%</span>
+						<span>Detect rate: {(report.metrics.club.detection_rate * 100).toFixed(0)}%</span>
+						<span>Method: {report.metrics.club.method}</span>
+						{#if report.metrics.club.shaft_lean_impact_deg != null}
+							<span>Shaft lean impact: {report.metrics.club.shaft_lean_impact_deg.toFixed(1)}°</span>
+						{/if}
+						{#if report.metrics.club.impact_refined}
+							<span class="text-highlight">Impact direfine dari tip stik</span>
+						{/if}
+					</div>
+					<p class="mt-2 text-xs text-disabled">
+						Overlay merah (grip → clubhead) hanya tampil saat deteksi YOLO/line cukup yakin.
+						Miss di downswing = tanpa garis palsu. Method: {report.metrics.club.method}.
+						{#if !report.metrics.club.yolo_enabled}
+							{' '}Pasang yolov8n-club.pt (lihat datasets/clubhead/README.md) setelah annotasi manual.
+						{:else}
+							{' '}Perkuat model: label manual di datasets/clubhead/to_label lalu train ulang.
+						{/if}
+					</p>
+				</div>
+			{/if}
 		</div>
 
 		<!-- Next swing focus -->
@@ -168,7 +194,7 @@
 		{#if videoUrl}
 			<div class="card mb-5 w-full min-w-0 sm:mb-6">
 				<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-					<p class="label">Video Tracking Sendi</p>
+					<p class="label">Video Tracking Sendi &amp; Stik</p>
 					{#if report?.annotated_video_slow_url}
 						<div class="flex gap-2">
 							<button

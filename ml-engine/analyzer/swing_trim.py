@@ -105,7 +105,7 @@ def scout_trim_window(
     if len(sparse_poses) < 8:
         return TrimWindow.no_trim(meta)
 
-    bio = GolfBiomechanicsAnalyzer(sparse_poses).analyze()
+    bio = GolfBiomechanicsAnalyzer(sparse_poses, fps=meta.fps).analyze()
     phases = bio.phases
 
     try:
@@ -121,10 +121,20 @@ def scout_trim_window(
     start = max(0, address_src - pad_before)
     end = min(meta.frame_count - 1, impact_src + pad_after)
 
+    # Invalid early top/impact (waggle): backswing too short in source time
+    backswing_sec = (top_src - address_src) / meta.fps if meta.fps > 0 else 0.0
+    if backswing_sec < config.TRIM_MIN_BACKSWING_SEC:
+        return TrimWindow.no_trim(meta)
+
     # Ensure enough frames for analysis; don't trim if detection looks invalid
     min_span = max(config.TRIM_MIN_FRAMES, config.MIN_FRAME_COUNT // 2)
     if end <= start or (end - start + 1) < min_span:
         return TrimWindow.no_trim(meta)
+
+    # If the cut would discard a large tail (real swing often later), keep through end
+    tail_after_impact = max(0, meta.frame_count - 1 - impact_src)
+    if meta.frame_count > 0 and (tail_after_impact / meta.frame_count) > config.TRIM_MAX_TAIL_DISCARD_RATIO:
+        end = meta.frame_count - 1
 
     # Skip trim if we'd only shave off negligible setup (< 0.3s) and keep almost all video
     setup_sec = start / meta.fps if meta.fps > 0 else 0.0

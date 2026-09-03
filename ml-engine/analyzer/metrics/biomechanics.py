@@ -85,7 +85,11 @@ class GolfBiomechanicsAnalyzer:
             RIGHT_HANDED_TRAIL_ANKLE if self.handedness == "right" else LEFT_HANDED_TRAIL_ANKLE
         )
 
-    def analyze(self, phase_hints: SwingPhases | None = None) -> BiomechanicsResult:
+    def analyze(
+        self,
+        phase_hints: SwingPhases | None = None,
+        skip_wrist_refine: bool = False,
+    ) -> BiomechanicsResult:
         if self.n_frames < 5:
             return BiomechanicsResult(detection_quality=self._detection_quality())
 
@@ -97,8 +101,16 @@ class GolfBiomechanicsAnalyzer:
         if not self._handedness_explicit:
             self._apply_handedness(self._infer_handedness(phases.address))
 
-        phases = self._refine_phases_wrist(phases)
+        if not skip_wrist_refine:
+            phases = self._refine_phases_wrist(phases)
 
+        return self._result_from_phases(phases)
+
+    def reanalyze_with_phases(self, phases: SwingPhases) -> BiomechanicsResult:
+        """Recompute metrics for already-refined phases (e.g. after club tip impact)."""
+        return self._result_from_phases(self._normalize_phases(phases))
+
+    def _result_from_phases(self, phases: SwingPhases) -> BiomechanicsResult:
         address_width = self._shoulder_width(phases.address)
         if address_width < 1.0:
             address_width = self._median_shoulder_width() or 1.0
@@ -369,8 +381,32 @@ class GolfBiomechanicsAnalyzer:
         address = phases.address
         original_top = phases.top
         original_impact = phases.impact
-        search_end = min(self.n_frames - 1, max(original_impact + 8, address + 12))
 
+        # Full remaining clip — do not clamp to original_top+25 (that locks false early tops).
+        search_end = self.n_frames - 1
+        wrist_hit = self._find_top_by_wrist_drop(address + 2, search_end)
+        if wrist_hit is not None:
+            top, refined_impact = wrist_hit
+            # Keep address; only adopt a clearly better top (higher hands / stronger drop)
+            orig_y = self._lead_wrist_y(original_top)
+            new_y = self._lead_wrist_y(top)
+            if orig_y is not None and new_y is not None and new_y > orig_y - 8.0:
+                # New "top" is not higher hands — keep original unless far later with similar height
+                if abs(top - original_top) < 8:
+                    top = original_top
+                    refined_impact = original_impact
+            min_down = max(3, (top - address) // 5)
+            impact = max(refined_impact, top + min_down)
+            impact = min(impact, self.n_frames - 1)
+            return SwingPhases(
+                address=address,
+                top=top,
+                impact=impact,
+                backswing_frames=max(1, top - address),
+                downswing_frames=max(1, impact - top),
+            )
+
+        search_end = min(self.n_frames - 1, max(original_impact + 8, address + 12))
         wrist_heights: list[tuple[int, float]] = []
         for i in range(address + 2, search_end + 1):
             wy = self._lead_wrist_y(i)
@@ -380,8 +416,7 @@ class GolfBiomechanicsAnalyzer:
             return phases
 
         top = min(wrist_heights, key=lambda t: t[1])[0]
-        top = max(top, address + 2, original_top - 5)
-        top = min(top, original_top + 25)
+        top = max(top, address + 2)
 
         post_top = [(i, wy) for i, wy in wrist_heights if i > top + 1]
         refined_impact = max(post_top, key=lambda t: t[1])[0] if post_top else original_impact
@@ -535,6 +570,70 @@ class GolfBiomechanicsAnalyzer:
         width_rot = self._rotation_from_width(current_width, address_hip_width)
         return min(max(width_rot, angle_rot), MAX_2D_JOINT_ROT_DEG)
 
+    def _source_frame(self, idx: int) -> int:
+        if 0 <= idx < len(self.poses):
+            return int(self.poses[idx].frame_index)
+        return idx
+
+    def _source_span(self, start: int, end: int) -> int:
+        """Inclusive-ish span in source video frames (handles sparse scout poses)."""
+        return max(0, self._source_frame(end) - self._source_frame(start))
+
+    def _min_backswing_source_frames(self) -> int:
+        fps = float(self.fps) if self.fps and self.fps > 1 else 30.0
+        return max(8, int(round(fps * 0.35)))
+
+    def _find_top_by_wrist_drop(
+        self,
+        search_start: int,
+        search_end: int,
+    ) -> tuple[int, int] | None:
+        """
+        Top = local high-hands (min wrist Y) with the strongest subsequent drop
+        toward impact (max wrist Y). Ignores early waggles and finish poses.
+        Returns (top_idx, impact_idx) or None.
+        """
+        series: list[tuple[int, float]] = []
+        for i in range(search_start, search_end + 1):
+            wy = self._lead_wrist_y(i)
+            if wy is not None:
+                series.append((i, float(wy)))
+        if len(series) < 8:
+            return None
+
+        max_ds = min(120, max(12, self.n_frames // 3))
+        candidates: list[tuple[float, int, int]] = []  # score, top, impact
+
+        for k in range(1, len(series) - 2):
+            i, wy = series[k]
+            prev_y = series[k - 1][1]
+            next_y = series[k + 1][1]
+            # Local minimum in image Y = hands high
+            if not (wy <= prev_y and wy <= next_y):
+                continue
+            post = [(j, y) for j, y in series if i + 2 <= j <= i + max_ds]
+            if len(post) < 3:
+                continue
+            impact_i, impact_y = max(post, key=lambda t: t[1])
+            drop = float(impact_y - wy)
+            if drop < 25.0:
+                continue
+            # Prefer larger drop; slight preference for later tops (real swing vs waggle)
+            score = drop + 0.05 * i
+            candidates.append((score, i, impact_i))
+
+        if not candidates:
+            # Fallback: global highest hands then lowest hands after
+            top_i, top_y = min(series, key=lambda t: t[1])
+            post = [(j, y) for j, y in series if j > top_i + 2]
+            if not post:
+                return None
+            impact_i = max(post, key=lambda t: t[1])[0]
+            return top_i, impact_i
+
+        _score, top_i, impact_i = max(candidates, key=lambda t: t[0])
+        return top_i, impact_i
+
     def _detect_swing_phases(self) -> SwingPhases:
         primary = self._detect_primary_swing_phases()
         if primary is not None:
@@ -543,8 +642,8 @@ class GolfBiomechanicsAnalyzer:
 
     def _detect_primary_swing_phases(self) -> SwingPhases | None:
         """
-        Find the main swing (largest shoulder turn), ignoring early waggles.
-        Works on both full videos and trimmed segments.
+        Find the main swing. Prefer wrist-height top with strongest downswing drop
+        when shoulder-rotation saturates early (common on DTL / long setup clips).
         """
         if self.n_frames < 20:
             return None
@@ -552,16 +651,35 @@ class GolfBiomechanicsAnalyzer:
         address_width = self._median_shoulder_width() or 1.0
         speeds = self._wrist_speed_series()
 
-        top = 10
-        best_rot = 0.0
-        for i in range(10, self.n_frames - 12):
-            rot = self._shoulder_rotation_at(i, 0, address_width)
-            if rot > best_rot:
-                best_rot = rot
-                top = i
+        rots: list[tuple[int, float]] = []
+        for i in range(10, self.n_frames - 8):
+            rots.append((i, self._shoulder_rotation_at(i, 0, address_width)))
+        if not rots:
+            return None
 
+        best_rot = max(r for _, r in rots)
         if best_rot < 8.0:
             return None
+
+        near_cap = sum(1 for _, r in rots if r >= MAX_2D_JOINT_ROT_DEG * 0.85)
+        saturated = near_cap > max(5, int(0.25 * len(rots)))
+
+        wrist_hit = self._find_top_by_wrist_drop(8, self.n_frames - 5)
+        if wrist_hit is not None:
+            top, impact = wrist_hit
+        elif saturated:
+            return None
+        else:
+            top = max(rots, key=lambda t: t[1])[0]
+            impact = min(top + 10, self.n_frames - 1)
+            post_top: list[tuple[int, float]] = []
+            post_top_limit = min(self.n_frames - 1, top + 120)
+            for i in range(top + 5, post_top_limit):
+                wy = self._lead_wrist_y(i)
+                if wy is not None:
+                    post_top.append((i, wy))
+            if post_top:
+                impact = max(post_top, key=lambda t: t[1])[0]
 
         pre_top = speeds[max(0, top - 140) : top]
         quiet = float(np.percentile(pre_top, 20)) if pre_top else 1.0
@@ -574,18 +692,12 @@ class GolfBiomechanicsAnalyzer:
                 address = i
                 break
 
-        impact = min(top + 10, self.n_frames - 1)
-        post_top: list[tuple[int, float]] = []
-        post_top_limit = min(self.n_frames - 1, top + 120)
-        for i in range(top + 5, post_top_limit):
-            wy = self._lead_wrist_y(i)
-            if wy is not None:
-                post_top.append((i, wy))
-        if post_top:
-            impact = max(post_top, key=lambda t: t[1])[0]
-
         impact = max(impact, top + 5)
         impact = min(impact, self.n_frames - 1)
+
+        min_bs = self._min_backswing_source_frames()
+        if self._source_span(address, top) < min_bs and (top - address) < 6:
+            return None
 
         return SwingPhases(
             address=address,
@@ -599,41 +711,40 @@ class GolfBiomechanicsAnalyzer:
         speeds = self._wrist_speed_series()
         address = self._detect_address_frame(speeds)
         address_width = self._shoulder_width(address) or self._median_shoulder_width() or 1.0
-        address_y = self._lead_wrist_y(address)
-        if address_y is None:
-            address_y = 0.0
 
-        search_end = min(self.n_frames - 1, address + 200)
+        search_end = min(self.n_frames - 1, max(address + 200, self.n_frames - 1))
 
-        # Top: peak shoulder rotation (reliable for face-on; wrist-only top fires too early)
-        top = address + 5
-        best_rot = 0.0
-        for i in range(address + 5, search_end):
-            rot = self._shoulder_rotation_at(i, address, address_width)
-            if rot > best_rot:
-                best_rot = rot
-                top = i
-
-        # Fallback: highest hands if rotation signal is weak
-        if best_rot < 5.0:
-            wrist_heights: list[tuple[int, float]] = []
+        wrist_hit = self._find_top_by_wrist_drop(address + 2, search_end)
+        if wrist_hit is not None:
+            top, impact = wrist_hit
+        else:
+            # Top: peak shoulder rotation; fallback to highest hands
+            top = address + 5
+            best_rot = 0.0
             for i in range(address + 5, search_end):
+                rot = self._shoulder_rotation_at(i, address, address_width)
+                if rot > best_rot:
+                    best_rot = rot
+                    top = i
+
+            if best_rot < 5.0:
+                wrist_heights: list[tuple[int, float]] = []
+                for i in range(address + 5, search_end):
+                    wy = self._lead_wrist_y(i)
+                    if wy is not None:
+                        wrist_heights.append((i, wy))
+                if wrist_heights:
+                    top = min(wrist_heights, key=lambda t: t[1])[0]
+
+            impact = min(top + 10, self.n_frames - 1)
+            post_top_limit = min(self.n_frames - 1, top + 120)
+            post_top: list[tuple[int, float]] = []
+            for i in range(top + 5, post_top_limit):
                 wy = self._lead_wrist_y(i)
                 if wy is not None:
-                    wrist_heights.append((i, wy))
-            if wrist_heights:
-                top = min(wrist_heights, key=lambda t: t[1])[0]
-
-        # Impact: after top, hands reach lowest point (max wrist Y in image coords)
-        impact = min(top + 10, self.n_frames - 1)
-        post_top_limit = min(self.n_frames - 1, top + 120)
-        post_top: list[tuple[int, float]] = []
-        for i in range(top + 5, post_top_limit):
-            wy = self._lead_wrist_y(i)
-            if wy is not None:
-                post_top.append((i, wy))
-        if post_top:
-            impact = max(post_top, key=lambda t: t[1])[0]
+                    post_top.append((i, wy))
+            if post_top:
+                impact = max(post_top, key=lambda t: t[1])[0]
 
         impact = max(impact, top + 5)
         impact = min(impact, self.n_frames - 1)

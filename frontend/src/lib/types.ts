@@ -97,6 +97,23 @@ export interface SwingMetrics {
 		lead_arm_straightness_impact_deg?: number;
 		handedness?: string;
 	};
+	club?: {
+		method: string;
+		yolo_enabled: boolean;
+		impact_frame_hint: number | null;
+		shaft_lean_impact_deg: number | null;
+		path_smoothness: number;
+		mean_confidence: number;
+		detection_rate: number;
+		proxy_rate: number;
+		frames_tracked: number;
+		frames_total: number;
+		tracking_score: number;
+		wrist_impact_frame?: number;
+		club_impact_frame?: number | null;
+		final_impact_frame?: number;
+		impact_refined?: boolean;
+	};
 	quality?: {
 		detection_quality: number;
 		min_keypoint_confidence: number;
@@ -237,6 +254,7 @@ export const ANALYSIS_STAGES = [
 	{ id: 'quality_check', label: 'Memeriksa kualitas & sudut kamera' },
 	{ id: 'locate_swing', label: 'Mencari segmen swing' },
 	{ id: 'extract_pose', label: 'Mengekstrak pose per frame' },
+	{ id: 'track_club', label: 'Melacak stik golf' },
 	{ id: 'compute_metrics', label: 'Menghitung metrik sendi' },
 	{ id: 'render_video', label: 'Membuat video analisis' },
 	{ id: 'score', label: 'Menghitung skor & rekomendasi' }

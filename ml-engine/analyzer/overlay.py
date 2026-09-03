@@ -1,4 +1,4 @@
-"""Draw skeleton overlay and motion trails on video frames."""
+"""Draw skeleton overlay, club shaft (red), and motion trails on video frames."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ import cv2
 import numpy as np
 
 import config
+from analyzer.club_track import ClubFrameTrack
 from analyzer.keypoints import SKELETON_CONNECTIONS, TRAIL_JOINTS
 from analyzer.pose import FramePose
 
@@ -43,6 +44,54 @@ def draw_pose(frame: np.ndarray, pose: FramePose, trails: dict[int, deque]) -> n
     return output
 
 
+# Only draw measured tips — never Kalman coast / body fallback (those look "ngawur").
+_DRAW_CLUB_SOURCES = frozenset({"yolo", "line", "fused"})
+_MIN_DRAW_CONF = 0.32
+
+
+def draw_club(
+    frame: np.ndarray,
+    track: ClubFrameTrack | None,
+    tip_trail: deque,
+) -> np.ndarray:
+    """Draw red shaft line, tip marker, and tip path trail."""
+    if track is None or track.tip_xy is None or track.grip_xy is None:
+        return frame
+    if track.source not in _DRAW_CLUB_SOURCES or track.confidence < _MIN_DRAW_CONF:
+        return frame
+
+    output = frame
+    grip = (int(track.grip_xy[0]), int(track.grip_xy[1]))
+    tip = (int(track.tip_xy[0]), int(track.tip_xy[1]))
+
+    cv2.line(
+        output,
+        grip,
+        tip,
+        config.COLOR_CLUB,
+        config.CLUB_SHAFT_THICKNESS,
+        cv2.LINE_AA,
+    )
+    cv2.circle(output, grip, 4, config.COLOR_CLUB, -1, cv2.LINE_AA)
+    cv2.circle(output, tip, config.CLUB_TIP_RADIUS, config.COLOR_CLUB_TIP, -1, cv2.LINE_AA)
+    cv2.circle(output, tip, config.CLUB_TIP_RADIUS + 2, config.COLOR_CLUB, 1, cv2.LINE_AA)
+
+    tip_trail.append(tip)
+    for i in range(1, len(tip_trail)):
+        alpha = i / max(len(tip_trail), 1)
+        thickness = max(1, int(3 * alpha))
+        cv2.line(
+            output,
+            tip_trail[i - 1],
+            tip_trail[i],
+            config.COLOR_CLUB_TRAIL,
+            thickness,
+            cv2.LINE_AA,
+        )
+
+    return output
+
+
 def render_annotated_video(
     input_path: str,
     output_path: str,
@@ -54,6 +103,7 @@ def render_annotated_video(
     end_frame: int | None = None,
     slow_output_path: str | None = None,
     slowmo_factor: int = 1,
+    club_tracks: list[ClubFrameTrack] | None = None,
 ) -> None:
     from analyzer.video_io import create_video_writer, iter_frames, transcode_for_browser
 
@@ -64,12 +114,19 @@ def render_annotated_video(
         slow_writer = create_video_writer(slow_output_path, meta_width, meta_height, meta_fps)
 
     trails: dict[int, deque] = {idx: deque(maxlen=20) for idx in TRAIL_JOINTS}
+    tip_trail: deque = deque(maxlen=12)
 
     try:
         for i, frame in enumerate(iter_frames(input_path, start_frame, end_frame)):
             pose = poses[i] if i < len(poses) else None
             if pose is not None:
                 frame = draw_pose(frame, pose, trails)
+
+            club = None
+            if club_tracks is not None and i < len(club_tracks):
+                club = club_tracks[i]
+            frame = draw_club(frame, club, tip_trail)
+
             writer.write(frame)
             if slow_writer is not None:
                 for _ in range(repeats):
