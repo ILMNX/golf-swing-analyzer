@@ -1,0 +1,7 @@
+<View>
+  <Header value="Box the clubhead only (blur smear OK). Not the shaft or hands."/>
+  <Image name="image" value="$image" zoom="true" zoomControl="true" rotateControl="false"/>
+  <RectangleLabels name="label" toName="image" strokeWidth="2">
+    <Label value="clubhead" background="#FF3B30"/>
+  </RectangleLabels>
+</View>

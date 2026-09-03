@@ -36,6 +36,10 @@ temp_*
 # ML engine output (annotated videos)
 ml-engine/output/
 
+# Clubhead annotate artifacts (regenerate via scripts)
+ml-engine/datasets/clubhead/roboflow_upload_to_label.zip
+ml-engine/datasets/clubhead/_bootstrap_bak/
+
 # IDE and OS
 .idea/
 .vscode/
